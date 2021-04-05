@@ -214,14 +214,9 @@ int main(int argc, char** argv)
                 const auto sourcePort{ntohs(tcp->th_sport)};
                 const auto destPort{ntohs(tcp->th_dport)};
 
-                //for(auto port : ports) cout << "port is: " << port;
-
                 if(ports.contains(sourcePort))
                 {
-                    cout << "  src ip: " << src_addr << std::endl;
-                    printf("  dst ip: %s\n", dst_addr);
-                    printf("  dst port: %d\n", destPort);
-                    printf("  src port: %d\n", sourcePort);
+                    printf("[%s] %s port %d -> %s port %d\n", fileName.c_str(), src_addr, sourcePort, dst_addr, destPort);
                     fflush(stdout);
                 }
             }
@@ -236,15 +231,12 @@ int main(int argc, char** argv)
                 const auto ports{PortFinder::ports({fileName}, IPv4)};
                 const auto sourcePort{ntohs(tcp->th_sport)};
                 const auto destPort{ntohs(tcp->th_dport)};
-
-//                for(auto port : ports) cout << "port is: " << port;
+                const std::string sourceAddr{inet_ntoa(ip->ip_src)};
+                const std::string destAddr{inet_ntoa(ip->ip_dst)};
 
                 if(ports.contains(sourcePort))
                 {
-                    printf("  src ip: %s\n", inet_ntoa(ip->ip_src));
-                    printf("  dst ip: %s\n", inet_ntoa(ip->ip_dst));
-                    printf("  dst port: %d\n", destPort);
-                    printf("  src port: %d\n", sourcePort);
+                    printf("[%s] %s port %d -> %s port %d\n", fileName.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
                     fflush(stdout);
                 }
             }
