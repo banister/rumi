@@ -136,9 +136,7 @@ bool PortFinder::matchesPath(const std::vector<std::string> &paths, pid_t pid)
     // Check whether the app is one we want to exclude
     return std::any_of(paths.begin(), paths.end(),
         [&appPath](const std::string &prefix) {
-            // On MacOS we exclude apps based on their ".app" bundle,
-            // this means we don't match on entire paths, but just on prefixes
-            return appPath.starts_with(prefix);
+            return appPath.find(prefix) != std::string::npos;
         });
 }
 
