@@ -234,7 +234,7 @@ int main(int argc, char** argv)
                 if(searchStrings.empty())
                 {
                     const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv6))};
-                    printf("[%s] %s port %d -> %s port %d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
+                    printf("%.30s %s.%d > %s.%d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
                 }
                 else
                 {
@@ -246,7 +246,7 @@ int main(int argc, char** argv)
                     if(stringMatched)
                     {
                         const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv6))};
-                        printf("[%s] %s port %d -> %s port %d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
+                        printf("%.30s %s.%d > %s.%d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
                     }
                 }
                 fflush(stdout);
@@ -266,7 +266,7 @@ int main(int argc, char** argv)
                 if(searchStrings.empty())
                 {
                     const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv4))};
-                    printf("[%s] %s port %d -> %s port %d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
+                    printf("%.30s %s:%d > %s:%d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
                 }
                 else
                 {
@@ -278,7 +278,7 @@ int main(int argc, char** argv)
                     if(stringMatched)
                     {
                         const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv4))};
-                        printf("[%s] %s port %d -> %s port %d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
+                        printf("%.30s %s:%d > %s:%d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
                     }
                 }
                 fflush(stdout);
