@@ -182,6 +182,7 @@ int close_bpf_sniffer(BpfSniffer *sniffer)
 int main(int argc, char** argv)
 {
     using std::cout;
+    using std::vector;
 
 /*     struct ifreq s;
     int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
@@ -206,6 +207,13 @@ int main(int argc, char** argv)
 
     CapturedInfo info;
     int dataLength;
+
+    vector<std::string> searchStrings;
+    searchStrings.reserve(argc);
+
+    if(argc > 1)
+        for(int i=1; i<argc; ++i) searchStrings.emplace_back(argv[i]);
+
     while((dataLength = read_bpf_packet_data(&sniffer, &info)) != -1) {
         struct ether_header* eh = (struct ether_header*)info.data;
 
@@ -217,22 +225,25 @@ int main(int argc, char** argv)
             struct tcphdr* tcp = (struct tcphdr*)((long)ip + sizeof(struct ip6_hdr)); //(ip-> ip6_plen));
             inet_ntop(AF_INET6, &ip->ip6_src, src_addr, INET6_ADDRSTRLEN);
             inet_ntop(AF_INET6, &ip->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
+
             if(ip->ip6_nxt == IPPROTO_TCP)
             {
-                const std::string fileName{argc > 1 ? argv[1] : ""};
-                const auto ports{PortFinder::ports({fileName}, IPv6)};
-
                 const auto sourcePort{ntohs(tcp->th_sport)};
                 const auto destPort{ntohs(tcp->th_dport)};
 
-                if(fileName.empty())
+                if(searchStrings.empty())
                 {
                     const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv6))};
                     printf("[%s] %s port %d -> %s port %d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
                 }
                 else
                 {
-                    if(ports.contains(sourcePort))
+                    bool stringMatched = std::any_of(searchStrings.begin(), searchStrings.end(), [&](const auto &str)
+                    {
+                        return PortFinder::ports({str}, IPv6).contains(sourcePort);
+                    });
+
+                    if(stringMatched)
                     {
                         const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv6))};
                         printf("[%s] %s port %d -> %s port %d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
@@ -247,21 +258,24 @@ int main(int argc, char** argv)
             struct tcphdr* tcp = (struct tcphdr*)((long)ip + (ip->ip_hl * 4));
 
             if (ip->ip_p == IPPROTO_TCP) {
-                const std::string fileName{argc > 1 ? argv[1] : ""};
-                const auto ports{PortFinder::ports({fileName}, IPv4)};
                 const auto sourcePort{ntohs(tcp->th_sport)};
                 const auto destPort{ntohs(tcp->th_dport)};
                 const std::string sourceAddr{inet_ntoa(ip->ip_src)};
                 const std::string destAddr{inet_ntoa(ip->ip_dst)};
 
-                if(fileName.empty())
+                if(searchStrings.empty())
                 {
                     const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv4))};
                     printf("[%s] %s port %d -> %s port %d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
                 }
                 else
                 {
-                    if(ports.contains(sourcePort))
+                    bool stringMatched = std::any_of(searchStrings.begin(), searchStrings.end(), [&](const auto &str)
+                    {
+                        return PortFinder::ports({str}, IPv4).contains(sourcePort);
+                    });
+
+                    if(stringMatched)
                     {
                         const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv4))};
                         printf("[%s] %s port %d -> %s port %d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
