@@ -14,6 +14,7 @@
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <net/if.h>
+#include <ifaddrs.h>
 #include <arpa/inet.h>
 #include "port_finder.h"
 #include <iostream>
@@ -182,6 +183,16 @@ int main(int argc, char** argv)
 {
     using std::cout;
 
+/*     struct ifreq s;
+    int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+    strcpy(s.ifr_name, "en0");
+
+    ioctl(fd, SIOCGIFADDR, &s);
+    std::uint32_t address = (*(std::uint32_t*)&s.ifr_addr.sa_data[2]);
+    in_addr *addr = reinterpret_cast<in_addr*>(&address);
+
+ */
     BpfOption option;
     strcpy(option.interfaceName, "en0");
     option.bufferLength = 32767;
@@ -208,17 +219,25 @@ int main(int argc, char** argv)
             inet_ntop(AF_INET6, &ip->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
             if(ip->ip6_nxt == IPPROTO_TCP)
             {
-                const std::string fileName{argv[1]};
+                const std::string fileName{argc > 1 ? argv[1] : ""};
                 const auto ports{PortFinder::ports({fileName}, IPv6)};
 
                 const auto sourcePort{ntohs(tcp->th_sport)};
                 const auto destPort{ntohs(tcp->th_dport)};
 
-                if(ports.contains(sourcePort))
+                if(fileName.empty())
                 {
-                    printf("[%s] %s port %d -> %s port %d\n", fileName.c_str(), src_addr, sourcePort, dst_addr, destPort);
-                    fflush(stdout);
+                    const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv6))};
+                    printf("[%s] %s port %d -> %s port %d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
                 }
+                else
+                {
+                    if(ports.contains(sourcePort))
+                    {
+                        printf("[%s] %s port %d -> %s port %d\n", fileName.c_str(), src_addr, sourcePort, dst_addr, destPort);
+                    }
+                }
+                fflush(stdout);
             }
         }
         else if(ntohs(eh->ether_type) == ETHERTYPE_IP)
@@ -227,18 +246,26 @@ int main(int argc, char** argv)
             struct tcphdr* tcp = (struct tcphdr*)((long)ip + (ip->ip_hl * 4));
 
             if (ip->ip_p == IPPROTO_TCP) {
-                const std::string fileName{argv[1]};
+                const std::string fileName{argc > 1 ? argv[1] : ""};
                 const auto ports{PortFinder::ports({fileName}, IPv4)};
                 const auto sourcePort{ntohs(tcp->th_sport)};
                 const auto destPort{ntohs(tcp->th_dport)};
                 const std::string sourceAddr{inet_ntoa(ip->ip_src)};
                 const std::string destAddr{inet_ntoa(ip->ip_dst)};
 
-                if(ports.contains(sourcePort))
+                if(fileName.empty())
                 {
-                    printf("[%s] %s port %d -> %s port %d\n", fileName.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
-                    fflush(stdout);
+                    const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv4))};
+                    printf("[%s] %s port %d -> %s port %d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
                 }
+                else
+                {
+                    if(ports.contains(sourcePort))
+                    {
+                        printf("[%s] %s port %d -> %s port %d\n", fileName.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
+                    }
+                }
+                fflush(stdout);
             }
         } else {
             //printf("  type: Other, %x\n", eh->ether_type);
