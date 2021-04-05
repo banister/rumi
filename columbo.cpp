@@ -70,18 +70,18 @@ int close_bpf_sniffer(BpfSniffer *sniffer);
 
 void print_bpf_options(BpfOption option)
 {
-    fprintf(stderr, "BpfOption:\n");
+/*     fprintf(stderr, "BpfOption:\n");
     fprintf(stderr, "  BPF Device: %s\n", option.deviceName);
     fprintf(stderr, "  Network Interface: %s\n", option.interfaceName);
     fprintf(stderr, "  Buffer Length: %d\n", option.bufferLength);
-}
+ */}
 
 void print_bpf_sniffer_params(BpfSniffer sniffer)
 {
-    fprintf(stderr, "BpfSniffer:\n");
+/*     fprintf(stderr, "BpfSniffer:\n");
     fprintf(stderr, "  Opened BPF Device: %s\n", sniffer.deviceName);
     fprintf(stderr, "  Buffer Length: %d\n", sniffer.bufferLength);
-}
+ */}
 
 int pick_bpf_device(BpfSniffer *sniffer)
 {
@@ -234,7 +234,8 @@ int main(int argc, char** argv)
                 {
                     if(ports.contains(sourcePort))
                     {
-                        printf("[%s] %s port %d -> %s port %d\n", fileName.c_str(), src_addr, sourcePort, dst_addr, destPort);
+                        const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv6))};
+                        printf("[%s] %s port %d -> %s port %d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
                     }
                 }
                 fflush(stdout);
@@ -262,7 +263,8 @@ int main(int argc, char** argv)
                 {
                     if(ports.contains(sourcePort))
                     {
-                        printf("[%s] %s port %d -> %s port %d\n", fileName.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
+                        const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv4))};
+                        printf("[%s] %s port %d -> %s port %d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
                     }
                 }
                 fflush(stdout);
