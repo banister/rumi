@@ -15,6 +15,8 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+#include "port_finder.h"
+#include <iostream>
 
 #ifndef _PCAP_BPF
 #define _PCAP_BPF
@@ -141,7 +143,7 @@ int new_bpf_sniffer(BpfOption option, BpfSniffer *sniffer)
 
     sniffer->readBytesConsumed = 0;
     sniffer->lastReadLength = 0;
-    sniffer->buffer = malloc(sizeof(char) * sniffer->bufferLength);
+    sniffer->buffer = (char*)malloc(sizeof(char) * sniffer->bufferLength);
     return 0;
 }
 
@@ -176,8 +178,10 @@ int close_bpf_sniffer(BpfSniffer *sniffer)
     return 0;
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    using std::cout;
+
     BpfOption option;
     strcpy(option.interfaceName, "en0");
     option.bufferLength = 32767;
@@ -192,26 +196,6 @@ int main()
     CapturedInfo info;
     int dataLength;
     while((dataLength = read_bpf_packet_data(&sniffer, &info)) != -1) {
-       /*printf("--------------------------------------------------\n");
-        printf("Payload length: %d\n", dataLength);
-
-        printf(" Ethernet Frame\n");
-        printf("  src mac address: %x:%x:%x:%x:%x:%x\n",
-               eh->ether_shost[0],
-               eh->ether_shost[1],
-               eh->ether_shost[2],
-               eh->ether_shost[3],
-               eh->ether_shost[4],
-               eh->ether_shost[5]);
-
-        printf("  dst mac address: %x:%x:%x:%x:%x:%x\n",
-               eh->ether_dhost[0],
-               eh->ether_dhost[1],
-               eh->ether_dhost[2],
-               eh->ether_dhost[3],
-               eh->ether_dhost[4],
-               eh->ether_dhost[5]);
- */
         struct ether_header* eh = (struct ether_header*)info.data;
 
         if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
@@ -222,14 +206,24 @@ int main()
             struct tcphdr* tcp = (struct tcphdr*)((long)ip + sizeof(struct ip6_hdr)); //(ip-> ip6_plen));
             inet_ntop(AF_INET6, &ip->ip6_src, src_addr, INET6_ADDRSTRLEN);
             inet_ntop(AF_INET6, &ip->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
-            printf("ipv6 packet!\n");
             if(ip->ip6_nxt == IPPROTO_TCP)
             {
-                printf("  src ip: %s\n", src_addr);
-                printf("  dst ip: %s\n", dst_addr);
-                printf("  dst port: %d\n", ntohs(tcp->th_dport));
-                printf("  src port: %d\n", ntohs(tcp->th_sport));
-                fflush(stdout);
+                const std::string fileName{argv[1]};
+                const auto ports{PortFinder::ports({fileName}, IPv6)};
+
+                const auto sourcePort{ntohs(tcp->th_sport)};
+                const auto destPort{ntohs(tcp->th_dport)};
+
+                //for(auto port : ports) cout << "port is: " << port;
+
+                if(ports.contains(sourcePort))
+                {
+                    cout << "  src ip: " << src_addr << std::endl;
+                    printf("  dst ip: %s\n", dst_addr);
+                    printf("  dst port: %d\n", destPort);
+                    printf("  src port: %d\n", sourcePort);
+                    fflush(stdout);
+                }
             }
         }
         else if(ntohs(eh->ether_type) == ETHERTYPE_IP)
@@ -237,13 +231,22 @@ int main()
             struct ip* ip = (struct ip*)((long)eh + sizeof(struct ether_header));
             struct tcphdr* tcp = (struct tcphdr*)((long)ip + (ip->ip_hl * 4));
 
-
             if (ip->ip_p == IPPROTO_TCP) {
-                printf("  src ip: %s\n", inet_ntoa(ip->ip_src));
-                printf("  dst ip: %s\n", inet_ntoa(ip->ip_dst));
-                printf("  dst port: %d\n", ntohs(tcp->th_dport));
-                printf("  src port: %d\n", ntohs(tcp->th_sport));
-                fflush(stdout);
+                const std::string fileName{argv[1]};
+                const auto ports{PortFinder::ports({fileName}, IPv4)};
+                const auto sourcePort{ntohs(tcp->th_sport)};
+                const auto destPort{ntohs(tcp->th_dport)};
+
+//                for(auto port : ports) cout << "port is: " << port;
+
+                if(ports.contains(sourcePort))
+                {
+                    printf("  src ip: %s\n", inet_ntoa(ip->ip_src));
+                    printf("  dst ip: %s\n", inet_ntoa(ip->ip_dst));
+                    printf("  dst port: %d\n", destPort);
+                    printf("  src port: %d\n", sourcePort);
+                    fflush(stdout);
+                }
             }
         } else {
             //printf("  type: Other, %x\n", eh->ether_type);
