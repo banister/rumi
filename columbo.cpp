@@ -226,7 +226,7 @@ int main(int argc, char** argv)
             inet_ntop(AF_INET6, &ip->ip6_src, src_addr, INET6_ADDRSTRLEN);
             inet_ntop(AF_INET6, &ip->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
 
-            if(ip->ip6_nxt == IPPROTO_TCP)
+            if(ip->ip6_nxt == IPPROTO_TCP || ip->ip6_nxt == IPPROTO_UDP)
             {
                 const auto sourcePort{ntohs(tcp->th_sport)};
                 const auto destPort{ntohs(tcp->th_dport)};
@@ -257,7 +257,7 @@ int main(int argc, char** argv)
             struct ip* ip = (struct ip*)((long)eh + sizeof(struct ether_header));
             struct tcphdr* tcp = (struct tcphdr*)((long)ip + (ip->ip_hl * 4));
 
-            if (ip->ip_p == IPPROTO_TCP) {
+            if (ip->ip_p == IPPROTO_TCP || ip->ip_p == IPPROTO_UDP) {
                 const auto sourcePort{ntohs(tcp->th_sport)};
                 const auto destPort{ntohs(tcp->th_dport)};
                 const std::string sourceAddr{inet_ntoa(ip->ip_src)};
