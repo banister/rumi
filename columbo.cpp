@@ -30,7 +30,7 @@ int main(int argc, char** argv)
 
     if(!bpfDevice)
     {
-        std::cerr << "Error loading bpf device\n";
+        std::cerr << "Could not load bpf device\n";
         return -1;
     }
 
