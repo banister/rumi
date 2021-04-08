@@ -1,11 +1,7 @@
 #pragma once
 
 #include <libproc.h>  // for proc_pidpath()
-#include <cinttypes>
-#include <set>
-#include <vector>
-#include <string>
-#include <compare>
+#include "common.h"
 
 using PortSet = std::set<std::uint16_t>;
 enum IPVersion { IPv4, IPv6 };
