@@ -2,7 +2,7 @@
 #include "ip_address.h"
 #include "packet.h"
 
-std::optional<Packet> Packet::createFromData(std::vector<unsigned char> data,
+std::optional<Packet> Packet::createFromData(std::span<unsigned char> data,
                                           unsigned skipBytes)
 {
     // Must contain an IP header, we read these fields
@@ -49,7 +49,7 @@ std::optional<Packet> Packet::createFromData(std::vector<unsigned char> data,
         pTransportHdr = reinterpret_cast<TransportPortHeader *>(pPkt + ipHdrLen);
     }
 
-    return Packet{std::move(data), pIpHdr, pTransportHdr};
+    return Packet{data, pIpHdr, pTransportHdr};
 }
 
 std::uint16_t Packet::csum(const std::uint16_t *pData, int words)
@@ -76,14 +76,14 @@ std::string Packet::toString() const
     if(packetType() != Other)
     {
         const std::string ptype = (packetType() == Udp ? "Udp" : packetType() == Tcp ? "Tcp" : "Other");
-        snprintf(buf, sizeof(buf), "Packet %s: %s:%d -> %s:%d",
+        snprintf(buf, sizeof(buf), "Packet %s: %s:%d -> %s:%d\n",
             ptype.c_str(), sourceAddressStr.c_str(), sourcePort(), destAddressStr.c_str(), destPort());
 
         return buf;
     }
     else
     {
-        snprintf(buf, sizeof(buf), "Packet (protocol: %d): %s -> %s",
+        snprintf(buf, sizeof(buf), "Packet (protocol: %d): %s -> %s\n",
             protocol(), sourceAddressStr.c_str(), destAddressStr.c_str());
         return buf;
     }
@@ -99,7 +99,7 @@ Packet::PacketType Packet::packetType() const
         return Other;
 }
 
-std::optional<Packet6> Packet6::createFromData(std::vector<unsigned char> data,
+std::optional<Packet6> Packet6::createFromData(std::span<unsigned char> data,
                                             unsigned skipBytes)
 {
     // Must contain an IPv6 header, we read these fields
@@ -209,7 +209,7 @@ std::optional<Packet6> Packet6::createFromData(std::vector<unsigned char> data,
         pTransportHdr = reinterpret_cast<TransportPortHeader *>(data.data() + transportHeaderOffset);
     }
 
-    return Packet6{std::move(data), nextHeader, pIpHdr, pTransportHdr};
+    return Packet6{data, nextHeader, pIpHdr, pTransportHdr};
 }
 
 Packet6::PacketType Packet6::packetType() const
@@ -232,14 +232,14 @@ std::string Packet6::toString() const
     {
         std::string ptype = (packetType() == Udp ? "Udp" : packetType() == Tcp ? "Tcp" : "Other");
 
-        snprintf(buf, sizeof(buf), "Packet %s: %s.%d -> %s.%d",
+        snprintf(buf, sizeof(buf), "Packet %s: %s.%d -> %s.%d\n",
             ptype.c_str(), sourceAddressStr.c_str(), sourcePort(), destAddressStr.c_str(), destPort());
 
         return buf;
     }
     else
     {
-        snprintf(buf, sizeof(buf), "Packet (protocol: %d) %s -> %s",
+        snprintf(buf, sizeof(buf), "Packet (protocol: %d) %s -> %s\n",
             protocol(), sourceAddressStr.c_str(), destAddressStr.c_str());
 
         return buf;

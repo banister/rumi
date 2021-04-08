@@ -6,6 +6,8 @@
 #include <iostream>
 #include <array>
 #include <set>
+#include <span>
+#include <variant>
 #include <compare>
 #include <unistd.h>
 #include <stdio.h>

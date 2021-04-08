@@ -25,20 +25,20 @@ public:
     };
 
 public:
-    static std::optional<Packet> createFromData(std::vector<unsigned char> data,
+    static std::optional<Packet> createFromData(std::span<unsigned char> data,
                                              unsigned skipBytes);
 
 public:
-    Packet(std::vector<unsigned char> data, ip *pIpHdr, TransportPortHeader *pTransportHdr)
-        : _data{std::move(data)}, _ipHdr{pIpHdr}, _transportHdr{pTransportHdr}
+    Packet(std::span<unsigned char> data, ip *pIpHdr, TransportPortHeader *pTransportHdr)
+        : _data{data}, _ipHdr{pIpHdr}, _transportHdr{pTransportHdr}
     {
-        // Prepare data for re-injection
+/*         // Prepar data for re-injection
         // ip_len and ip_off must be in host order (macOS quirk)
         _ipHdr->ip_len = ntohs(_ipHdr->ip_len);
         _ipHdr->ip_off = ntohs(_ipHdr->ip_off);
         _ipHdr->ip_sum = 0;
         _ipHdr->ip_sum = csum(reinterpret_cast<const std::uint16_t *>(_ipHdr), _ipHdr->ip_len);
-    }
+ */    }
 
     // ip->ip_len
     std::uint16_t len() const { return _ipHdr->ip_len; }
@@ -66,7 +66,7 @@ private:
 
 private:
     // Actual packet data buffer (_ipHdr and _transportHdr point to this)
-    std::vector<unsigned char> _data;
+    std::span<unsigned char> _data;
     ip * _ipHdr;
     TransportPortHeader * _transportHdr;
 };
@@ -82,12 +82,12 @@ public:
     };
 
 public:
-    static std::optional<Packet6> createFromData(std::vector<unsigned char> data,
+    static std::optional<Packet6> createFromData(std::span<unsigned char> data,
                                               unsigned skipBytes);
 public:
-    Packet6(std::vector<unsigned char> data, std::uint8_t transportProtocol,
+    Packet6(std::span<unsigned char> data, std::uint8_t transportProtocol,
            ip6_hdr *pIpHdr, TransportPortHeader *pTransportHdr)
-        : _data{std::move(data)}, _transportProtocol{transportProtocol},
+        : _data{data}, _transportProtocol{transportProtocol},
           _ipHdr{pIpHdr}, _transportHdr{pTransportHdr}
     {
     }
@@ -112,7 +112,7 @@ public:
 
 private:
     // Actual packet data buffer (_ipHdr and _transportHdr point to this)
-    std::vector<unsigned char> _data;
+    std::span<unsigned char> _data;
     std::uint8_t _transportProtocol;
     ip6_hdr * _ipHdr;
     TransportPortHeader * _transportHdr;

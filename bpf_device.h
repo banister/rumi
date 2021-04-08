@@ -2,6 +2,7 @@
 
 #include "util.h"
 #include "fd.h"
+#include "packet.h"
 #include <net/bpf.h>
 #include <netinet/if_ether.h>
 
@@ -21,8 +22,8 @@ public:
      template <typename Func_T>
      void onPacketReceived(Func_T func) const
      {
-         std::vector<std::byte> buf(_bufferLength);
-         std::byte *ptr = reinterpret_cast<std::byte*>(buf.data());
+         std::vector<unsigned char> buf(_bufferLength);
+         unsigned char *ptr = reinterpret_cast<unsigned char*>(buf.data());
          ssize_t length = read(_fd.get(), buf.data(), _bufferLength);
 
          while(ptr < buf.data() + length)
@@ -30,9 +31,28 @@ public:
              bpf_hdr *bh = reinterpret_cast<bpf_hdr*>(ptr);
 
              ether_header *eh = reinterpret_cast<ether_header*>(ptr + bh->bh_hdrlen);
-             ptr += BPF_WORDALIGN(bh->bh_hdrlen + bh->bh_caplen);
 
-             func(eh);
+             std::optional<std::variant<Packet, Packet6>> pPacket;
+             std::span<unsigned char> data(ptr + bh->bh_hdrlen, ptr + length);
+             ptr += BPF_WORDALIGN(bh->bh_hdrlen + bh->bh_caplen);
+             if(ntohs(eh->ether_type) == ETHERTYPE_IP)
+             {
+                 auto p = Packet::createFromData(data, sizeof(ether_header));
+                 if(!p)
+                     continue;
+
+                pPacket.emplace(*p);
+                func(*pPacket);
+             }
+             else if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
+             {
+                 auto p = Packet6::createFromData(data, sizeof(ether_header));
+                 if(!p)
+                     continue;
+
+                pPacket.emplace(*p);
+                func(*pPacket);
+             }
          }
     }
 

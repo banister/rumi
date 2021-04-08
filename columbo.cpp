@@ -15,7 +15,6 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <ifaddrs.h>
-#include <arpa/inet.h>
 #include <iostream>
 
 #include "port_finder.h"
@@ -42,11 +41,16 @@ int main(int argc, char** argv)
     if(argc > 1)
         for(int i=1; i<argc; ++i) searchStrings.emplace_back(argv[i]);
 
-    while (true)
+    while(true)
     {
-        bpfDevice->onPacketReceived([&](const ether_header *eh)
+        bpfDevice->onPacketReceived([&](const std::variant<Packet, Packet6> &packet)
         {
-            if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
+            if(std::holds_alternative<Packet>(packet))
+                std::cout << std::get<Packet>(packet).toString() << std::endl;
+            else
+                std::cout << std::get<Packet6>(packet).toString() << std::endl;
+
+/*             if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
             {
                 char src_addr[INET6_ADDRSTRLEN];
                 char dst_addr[INET6_ADDRSTRLEN];
@@ -112,7 +116,7 @@ int main(int argc, char** argv)
                     fflush(stdout);
                 }
             }
-        });
+ */        });
     }
     return 0;
 }
