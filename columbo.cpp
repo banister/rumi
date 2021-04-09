@@ -20,6 +20,9 @@
 #include "port_finder.h"
 #include "bpf_device.h"
 
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
 int main(int argc, char** argv)
 {
     using std::cout;
@@ -45,11 +48,23 @@ int main(int argc, char** argv)
     {
         bpfDevice->onPacketReceived([&](const auto &packet)
         {
-            if(std::holds_alternative<Packet4>(packet))
+            std::visit(
+                overloaded {
+                    [](const Packet4 &packet4)
+                    {
+                        std::cout << packet4.toString() << std::endl;
+                    },
+                    [](const Packet6 &packet6)
+                    {
+                        std::cout << packet6.toString() << std::endl;
+                    },
+                   [](auto) {} // monostate
+                }, packet);
+/*             if(std::holds_alternative<Packet4>(packet))
                 std::cout << std::get<Packet4>(packet).toString() << std::endl;
             else
                 std::cout << std::get<Packet6>(packet).toString() << std::endl;
-
+ */
 /*             if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
             {
                 char src_addr[INET6_ADDRSTRLEN];
