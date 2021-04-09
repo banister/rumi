@@ -48,18 +48,7 @@ int main(int argc, char** argv)
     {
         bpfDevice->onPacketReceived([&](const auto &packet)
         {
-            std::visit(
-                overloaded {
-                    [](const Packet4 &packet4)
-                    {
-                        std::cout << packet4.toString() << std::endl;
-                    },
-                    [](const Packet6 &packet6)
-                    {
-                        std::cout << packet6.toString() << std::endl;
-                    },
-                   [](auto) {} // monostate
-                }, packet);
+            std::cout << packet.toString() << std::endl;
 /*             if(std::holds_alternative<Packet4>(packet))
                 std::cout << std::get<Packet4>(packet).toString() << std::endl;
             else

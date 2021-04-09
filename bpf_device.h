@@ -31,26 +31,23 @@ public:
              bpf_hdr *bh = reinterpret_cast<bpf_hdr*>(ptr);
              ether_header *eh = reinterpret_cast<ether_header*>(ptr + bh->bh_hdrlen);
 
-             std::variant<std::monostate, Packet4, Packet6> packet;
              std::span<unsigned char> data(ptr + bh->bh_hdrlen, ptr + length);
              ptr += BPF_WORDALIGN(bh->bh_hdrlen + bh->bh_caplen);
              if(ntohs(eh->ether_type) == ETHERTYPE_IP)
              {
-                 auto p = Packet4::createFromData(data, sizeof(ether_header));
-                 if(!p)
+                 auto packet4 = Packet4::createFromData(data, sizeof(ether_header));
+                 if(!packet4)
                      continue;
 
-                packet = *p;
-                func(packet);
+                func(Packet{std::move(*packet4)});
              }
              else if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
              {
-                 auto p = Packet6::createFromData(data, sizeof(ether_header));
-                 if(!p)
+                 auto packet6 = Packet6::createFromData(data, sizeof(ether_header));
+                 if(!packet6)
                      continue;
 
-                packet = *p;
-                func(packet);
+                func(Packet{std::move(*packet6)});
              }
          }
     }

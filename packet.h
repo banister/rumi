@@ -117,3 +117,22 @@ private:
     ip6_hdr * _ipHdr;
     TransportPortHeader * _transportHdr;
 };
+
+class Packet
+{
+public:
+    Packet(Packet4 packet4) : _packet{std::move(packet4)} {}
+    Packet(Packet6 packet6) : _packet{std::move(packet6)} {}
+
+public:
+    std::uint16_t sourcePort() const;
+    std::uint16_t destPort() const;
+    std::string sourceAddress() const;
+    std::string destAddress() const;
+    std::string toString() const;
+    bool isIpv4() const;
+    bool isIpv6() const;
+
+private:
+    std::variant<Packet4, Packet6> _packet;
+};

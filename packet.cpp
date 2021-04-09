@@ -245,3 +245,54 @@ std::string Packet6::toString() const
         return buf;
     }
 }
+
+std::uint16_t Packet::sourcePort() const
+{
+    if(std::holds_alternative<Packet4>(_packet))
+        return std::get<Packet4>(_packet).sourcePort();
+    else
+        return std::get<Packet6>(_packet).sourcePort();
+}
+
+std::uint16_t Packet::destPort() const
+{
+    if(std::holds_alternative<Packet4>(_packet))
+        return std::get<Packet4>(_packet).destPort();
+    else
+        return std::get<Packet6>(_packet).destPort();
+}
+
+std::string Packet::toString() const
+{
+    if(std::holds_alternative<Packet4>(_packet))
+        return std::get<Packet4>(_packet).toString();
+    else
+        return std::get<Packet6>(_packet).toString();
+}
+
+std::string Packet::sourceAddress() const
+{
+    if(std::holds_alternative<Packet4>(_packet))
+        return IPv4Address{ntohl(std::get<Packet4>(_packet).sourceAddress())}.toString();
+    else
+        return IPv6Address{std::get<Packet6>(_packet).sourceAddress()}.toString();
+}
+
+std::string Packet::destAddress() const
+{
+    if(std::holds_alternative<Packet4>(_packet))
+        return IPv4Address{ntohl(std::get<Packet4>(_packet).destAddress())}.toString();
+    else
+        return IPv6Address{std::get<Packet6>(_packet).destAddress()}.toString();
+}
+
+bool Packet::isIpv4() const
+{
+    return std::holds_alternative<Packet4>(_packet) ? true : false;
+}
+
+bool Packet::isIpv6() const
+{
+    return !isIpv4();
+}
+
