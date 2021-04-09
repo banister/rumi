@@ -2,7 +2,7 @@
 #include "ip_address.h"
 #include "packet.h"
 
-std::optional<Packet> Packet::createFromData(std::span<unsigned char> data,
+std::optional<Packet4> Packet4::createFromData(std::span<unsigned char> data,
                                           unsigned skipBytes)
 {
     // Must contain an IP header, we read these fields
@@ -49,10 +49,10 @@ std::optional<Packet> Packet::createFromData(std::span<unsigned char> data,
         pTransportHdr = reinterpret_cast<TransportPortHeader *>(pPkt + ipHdrLen);
     }
 
-    return Packet{data, pIpHdr, pTransportHdr};
+    return Packet4{data, pIpHdr, pTransportHdr};
 }
 
-std::uint16_t Packet::csum(const std::uint16_t *pData, int words)
+std::uint16_t Packet4::csum(const std::uint16_t *pData, int words)
 {
     std::uint_fast32_t checksumTotal{};
     const std::uint16_t *pDataEnd = pData + (words);
@@ -67,7 +67,7 @@ std::uint16_t Packet::csum(const std::uint16_t *pData, int words)
     return static_cast<std::uint16_t>(~checksumTotal);
 }
 
-std::string Packet::toString() const
+std::string Packet4::toString() const
 {
     const std::string sourceAddressStr = IPv4Address{ntohl(sourceAddress())}.toString();
     const std::string destAddressStr = IPv4Address{ntohl(destAddress())}.toString();
@@ -89,7 +89,7 @@ std::string Packet::toString() const
     }
 }
 
-Packet::PacketType Packet::packetType() const
+Packet4::PacketType Packet4::packetType() const
 {
     if(_ipHdr->ip_p == IPPROTO_TCP)
         return Tcp;

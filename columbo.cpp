@@ -43,10 +43,10 @@ int main(int argc, char** argv)
 
     while(true)
     {
-        bpfDevice->onPacketReceived([&](const std::variant<Packet, Packet6> &packet)
+        bpfDevice->onPacketReceived([&](const auto &packet)
         {
-            if(std::holds_alternative<Packet>(packet))
-                std::cout << std::get<Packet>(packet).toString() << std::endl;
+            if(std::holds_alternative<Packet4>(packet))
+                std::cout << std::get<Packet4>(packet).toString() << std::endl;
             else
                 std::cout << std::get<Packet6>(packet).toString() << std::endl;
 

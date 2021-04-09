@@ -14,7 +14,7 @@ struct TransportPortHeader
     std::uint16_t dport;
 };
 
-class Packet
+class Packet4
 {
 public:
     enum PacketType
@@ -25,11 +25,11 @@ public:
     };
 
 public:
-    static std::optional<Packet> createFromData(std::span<unsigned char> data,
+    static std::optional<Packet4> createFromData(std::span<unsigned char> data,
                                              unsigned skipBytes);
 
 public:
-    Packet(std::span<unsigned char> data, ip *pIpHdr, TransportPortHeader *pTransportHdr)
+    Packet4(std::span<unsigned char> data, ip *pIpHdr, TransportPortHeader *pTransportHdr)
         : _data{data}, _ipHdr{pIpHdr}, _transportHdr{pTransportHdr}
     {
 /*         // Prepar data for re-injection

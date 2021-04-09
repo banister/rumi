@@ -29,20 +29,19 @@ public:
          while(ptr < buf.data() + length)
          {
              bpf_hdr *bh = reinterpret_cast<bpf_hdr*>(ptr);
-
              ether_header *eh = reinterpret_cast<ether_header*>(ptr + bh->bh_hdrlen);
 
-             std::optional<std::variant<Packet, Packet6>> pPacket;
+             std::variant<std::monostate, Packet4, Packet6> packet;
              std::span<unsigned char> data(ptr + bh->bh_hdrlen, ptr + length);
              ptr += BPF_WORDALIGN(bh->bh_hdrlen + bh->bh_caplen);
              if(ntohs(eh->ether_type) == ETHERTYPE_IP)
              {
-                 auto p = Packet::createFromData(data, sizeof(ether_header));
+                 auto p = Packet4::createFromData(data, sizeof(ether_header));
                  if(!p)
                      continue;
 
-                pPacket.emplace(*p);
-                func(*pPacket);
+                packet = *p;
+                func(packet);
              }
              else if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
              {
@@ -50,8 +49,8 @@ public:
                  if(!p)
                      continue;
 
-                pPacket.emplace(*p);
-                func(*pPacket);
+                packet = *p;
+                func(packet);
              }
          }
     }
