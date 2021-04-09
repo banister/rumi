@@ -2,10 +2,6 @@
 
 #include <libproc.h>  // for proc_pidpath()
 #include "common.h"
-
-using PortSet = std::set<std::uint16_t>;
-enum IPVersion { IPv4, IPv6 };
-
 class AddressAndPort
 {
 public:

@@ -246,7 +246,7 @@ std::string Packet6::toString() const
     }
 }
 
-std::uint16_t Packet::sourcePort() const
+std::uint16_t PacketView::sourcePort() const
 {
     if(std::holds_alternative<Packet4>(_packet))
         return std::get<Packet4>(_packet).sourcePort();
@@ -254,7 +254,7 @@ std::uint16_t Packet::sourcePort() const
         return std::get<Packet6>(_packet).sourcePort();
 }
 
-std::uint16_t Packet::destPort() const
+std::uint16_t PacketView::destPort() const
 {
     if(std::holds_alternative<Packet4>(_packet))
         return std::get<Packet4>(_packet).destPort();
@@ -262,7 +262,7 @@ std::uint16_t Packet::destPort() const
         return std::get<Packet6>(_packet).destPort();
 }
 
-std::string Packet::toString() const
+std::string PacketView::toString() const
 {
     if(std::holds_alternative<Packet4>(_packet))
         return std::get<Packet4>(_packet).toString();
@@ -270,7 +270,7 @@ std::string Packet::toString() const
         return std::get<Packet6>(_packet).toString();
 }
 
-std::string Packet::sourceAddress() const
+std::string PacketView::sourceAddress() const
 {
     if(std::holds_alternative<Packet4>(_packet))
         return IPv4Address{ntohl(std::get<Packet4>(_packet).sourceAddress())}.toString();
@@ -278,7 +278,7 @@ std::string Packet::sourceAddress() const
         return IPv6Address{std::get<Packet6>(_packet).sourceAddress()}.toString();
 }
 
-std::string Packet::destAddress() const
+std::string PacketView::destAddress() const
 {
     if(std::holds_alternative<Packet4>(_packet))
         return IPv4Address{ntohl(std::get<Packet4>(_packet).destAddress())}.toString();
@@ -286,13 +286,30 @@ std::string Packet::destAddress() const
         return IPv6Address{std::get<Packet6>(_packet).destAddress()}.toString();
 }
 
-bool Packet::isIpv4() const
+bool PacketView::isIpv4() const
 {
     return std::holds_alternative<Packet4>(_packet) ? true : false;
 }
 
-bool Packet::isIpv6() const
+bool PacketView::isIpv6() const
 {
     return !isIpv4();
 }
+
+std::uint8_t PacketView::transportProtocol() const
+{
+    if(std::holds_alternative<Packet4>(_packet))
+        return std::get<Packet4>(_packet).protocol();
+    else
+        return std::get<Packet6>(_packet).protocol();
+}
+
+IPVersion PacketView::ipVersion() const
+{
+    if(std::holds_alternative<Packet4>(_packet))
+        return IPv4;
+    else
+        return IPv6;
+}
+
 

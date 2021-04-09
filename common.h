@@ -15,3 +15,6 @@
 #include <string.h>
 #include <arpa/inet.h>
 
+// Types
+using PortSet = std::set<std::uint16_t>;
+enum IPVersion { IPv4, IPv6 };

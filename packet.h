@@ -32,13 +32,13 @@ public:
     Packet4(std::span<unsigned char> data, ip *pIpHdr, TransportPortHeader *pTransportHdr)
         : _data{data}, _ipHdr{pIpHdr}, _transportHdr{pTransportHdr}
     {
-/*         // Prepar data for re-injection
+         // Prepar data for re-injection
         // ip_len and ip_off must be in host order (macOS quirk)
         _ipHdr->ip_len = ntohs(_ipHdr->ip_len);
         _ipHdr->ip_off = ntohs(_ipHdr->ip_off);
         _ipHdr->ip_sum = 0;
         _ipHdr->ip_sum = csum(reinterpret_cast<const std::uint16_t *>(_ipHdr), _ipHdr->ip_len);
- */    }
+     }
 
     // ip->ip_len
     std::uint16_t len() const { return _ipHdr->ip_len; }
@@ -118,11 +118,11 @@ private:
     TransportPortHeader * _transportHdr;
 };
 
-class Packet
+class PacketView
 {
 public:
-    Packet(Packet4 packet4) : _packet{std::move(packet4)} {}
-    Packet(Packet6 packet6) : _packet{std::move(packet6)} {}
+    PacketView(Packet4 packet4) : _packet{std::move(packet4)} {}
+    PacketView(Packet6 packet6) : _packet{std::move(packet6)} {}
 
 public:
     std::uint16_t sourcePort() const;
@@ -132,6 +132,10 @@ public:
     std::string toString() const;
     bool isIpv4() const;
     bool isIpv6() const;
+    std::uint8_t transportProtocol() const;
+    bool hasTransport() const {return transportProtocol() == IPPROTO_UDP || transportProtocol() == IPPROTO_TCP;}
+    std::string transportName() const {return hasTransport() ? (transportProtocol() == IPPROTO_UDP ? "UDP" : "TCP") : "";}
+    IPVersion ipVersion() const;
 
 private:
     std::variant<Packet4, Packet6> _packet;

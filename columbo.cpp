@@ -20,9 +20,6 @@
 #include "port_finder.h"
 #include "bpf_device.h"
 
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
 int main(int argc, char** argv)
 {
     using std::cout;
@@ -46,81 +43,32 @@ int main(int argc, char** argv)
 
     while(true)
     {
-        bpfDevice->onPacketReceived([&](const auto &packet)
+        bpfDevice->onPacketReceived([&](const PacketView &packet)
         {
-            std::cout << packet.toString() << std::endl;
-/*             if(std::holds_alternative<Packet4>(packet))
-                std::cout << std::get<Packet4>(packet).toString() << std::endl;
-            else
-                std::cout << std::get<Packet6>(packet).toString() << std::endl;
- */
-/*             if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
+            if(packet.hasTransport())
             {
-                char src_addr[INET6_ADDRSTRLEN];
-                char dst_addr[INET6_ADDRSTRLEN];
-                struct ip6_hdr *ip = (struct ip6_hdr *)((long)eh + sizeof(struct ether_header));
-                struct tcphdr *tcp = (struct tcphdr *)((long)ip + sizeof(struct ip6_hdr)); //(ip-> ip6_plen));
-                inet_ntop(AF_INET6, &ip->ip6_src, src_addr, INET6_ADDRSTRLEN);
-                inet_ntop(AF_INET6, &ip->ip6_dst, dst_addr, INET6_ADDRSTRLEN);
-
-                if (ip->ip6_nxt == IPPROTO_TCP || ip->ip6_nxt == IPPROTO_UDP)
+                if(searchStrings.empty())
                 {
-                    const auto sourcePort{ntohs(tcp->th_sport)};
-                    const auto destPort{ntohs(tcp->th_dport)};
-
-                    if (searchStrings.empty())
-                    {
-                        const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv6))};
-                        printf("%.30s %s.%d > %s.%d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
-                    }
-                    else
-                    {
-                        bool stringMatched = std::any_of(searchStrings.begin(), searchStrings.end(), [&](const auto &str) {
-                            return PortFinder::ports({str}, IPv6).contains(sourcePort);
-                        });
-
-                        if (stringMatched)
-                        {
-                            const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv6))};
-                            printf("%.30s %s.%d > %s.%d\n", path.c_str(), src_addr, sourcePort, dst_addr, destPort);
-                        }
-                    }
-                    fflush(stdout);
+                    const auto path{PortFinder::pidToPath(PortFinder::pidForPort(packet.sourcePort(), packet.ipVersion()))};
+                    printf("%.30s %s %s.%d > %s.%d\n", path.c_str(), packet.transportName().c_str(),
+                        packet.sourceAddress().c_str(), packet.sourcePort(), packet.destAddress().c_str(), packet.destPort());
                 }
-            }
-            else if (ntohs(eh->ether_type) == ETHERTYPE_IP)
-            {
-                struct ip *ip = (struct ip *)((long)eh + sizeof(struct ether_header));
-                struct tcphdr *tcp = (struct tcphdr *)((long)ip + (ip->ip_hl * 4));
-
-                if (ip->ip_p == IPPROTO_TCP || ip->ip_p == IPPROTO_UDP)
+                else
                 {
-                    const auto sourcePort{ntohs(tcp->th_sport)};
-                    const auto destPort{ntohs(tcp->th_dport)};
-                    const std::string sourceAddr{inet_ntoa(ip->ip_src)};
-                    const std::string destAddr{inet_ntoa(ip->ip_dst)};
+                    bool stringMatched = std::any_of(searchStrings.begin(), searchStrings.end(), [&](const auto &str) {
+                        return PortFinder::ports({str}, packet.ipVersion()).contains(packet.sourcePort());
+                    });
 
-                    if (searchStrings.empty())
+                    if(stringMatched)
                     {
-                        const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv4))};
-                        printf("%.30s %s:%d > %s:%d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
+                        const auto path{PortFinder::pidToPath(PortFinder::pidForPort(packet.sourcePort(), packet.ipVersion()))};
+                        printf("%.30s %s %s.%d > %s.%d\n", path.c_str(), packet.transportName().c_str(),
+                            packet.sourceAddress().c_str(), packet.sourcePort(), packet.destAddress().c_str(), packet.destPort());
                     }
-                    else
-                    {
-                        bool stringMatched = std::any_of(searchStrings.begin(), searchStrings.end(), [&](const auto &str) {
-                            return PortFinder::ports({str}, IPv4).contains(sourcePort);
-                        });
-
-                        if (stringMatched)
-                        {
-                            const auto path{PortFinder::pidToPath(PortFinder::pidForPort(sourcePort, IPv4))};
-                            printf("%.30s %s:%d > %s:%d\n", path.c_str(), sourceAddr.c_str(), sourcePort, destAddr.c_str(), destPort);
-                        }
-                    }
-                    fflush(stdout);
                 }
+                fflush(stdout);
             }
- */        });
+        });
     }
     return 0;
 }

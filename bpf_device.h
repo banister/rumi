@@ -39,7 +39,7 @@ public:
                  if(!packet4)
                      continue;
 
-                func(Packet{std::move(*packet4)});
+                func(PacketView{std::move(*packet4)});
              }
              else if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
              {
@@ -47,7 +47,7 @@ public:
                  if(!packet6)
                      continue;
 
-                func(Packet{std::move(*packet6)});
+                func(PacketView{std::move(*packet6)});
              }
          }
     }
