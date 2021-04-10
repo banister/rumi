@@ -49,21 +49,24 @@ int main(int argc, char** argv)
             {
                 if(searchStrings.empty())
                 {
-                    const auto path{PortFinder::pidToPath(PortFinder::pidForPort(packet.sourcePort(), packet.ipVersion()))};
+                    const auto path{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
                     printf("%.30s %s %s.%d > %s.%d\n", path.c_str(), packet.transportName().c_str(),
-                        packet.sourceAddress().c_str(), packet.sourcePort(), packet.destAddress().c_str(), packet.destPort());
+                        packet.sourceAddress().c_str(), packet.sourcePort(),
+                        packet.destAddress().c_str(), packet.destPort());
                 }
                 else
                 {
-                    bool stringMatched = std::any_of(searchStrings.begin(), searchStrings.end(), [&](const auto &str) {
+                    bool stringMatched = std::any_of(searchStrings.begin(), searchStrings.end(),
+                    [&](const auto &str) {
                         return PortFinder::ports({str}, packet.ipVersion()).contains(packet.sourcePort());
                     });
 
                     if(stringMatched)
                     {
-                        const auto path{PortFinder::pidToPath(PortFinder::pidForPort(packet.sourcePort(), packet.ipVersion()))};
+                        const auto path{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
                         printf("%.30s %s %s.%d > %s.%d\n", path.c_str(), packet.transportName().c_str(),
-                            packet.sourceAddress().c_str(), packet.sourcePort(), packet.destAddress().c_str(), packet.destPort());
+                            packet.sourceAddress().c_str(), packet.sourcePort(),
+                            packet.destAddress().c_str(), packet.destPort());
                     }
                 }
                 fflush(stdout);

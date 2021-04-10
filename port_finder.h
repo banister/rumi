@@ -37,10 +37,10 @@ std::set<pid_t> pids(const std::vector<std::string> &paths);
 PortSet ports(const std::set<pid_t> &pids, IPVersion ipVersion);
 PortSet ports(const std::vector<std::string> &paths, IPVersion ipVersion);
 std::set<AddressAndPort> addresses4(const std::vector<std::string> &paths);
-pid_t pidForPort(std::uint16_t port, IPVersion ipVersion=IPv4);
-
-bool matchesPath(const std::vector<std::string> &paths, pid_t pid);
+pid_t portToPid(std::uint16_t port, IPVersion ipVersion=IPv4);
 std::string pidToPath(pid_t);
+std::string portToPath(std::uint16_t port, IPVersion ipVersion);
+bool matchesPath(const std::vector<std::string> &paths, pid_t pid);
 
 template <typename Func_T>
 pid_t pidFor(Func_T func)

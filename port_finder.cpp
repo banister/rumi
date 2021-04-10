@@ -148,7 +148,7 @@ std::string PortFinder::pidToPath(pid_t pid)
     return std::string{path};
 }
 
-pid_t PortFinder::pidForPort(std::uint16_t port, IPVersion ipVersion)
+pid_t PortFinder::portToPid(std::uint16_t port, IPVersion ipVersion)
 {
     return pidFor([&](const auto &pid) {
         std::set<std::uint16_t> ports;
@@ -203,5 +203,10 @@ std::set<AddressAndPort> PortFinder::addresses4(const std::vector<std::string> &
         });
 
     return addresses;
+}
+
+std::string PortFinder::portToPath(std::uint16_t port, IPVersion ipVersion)
+{
+    return pidToPath(portToPid(port, ipVersion));
 }
 
