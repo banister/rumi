@@ -20,11 +20,54 @@
 #include "port_finder.h"
 #include "bpf_device.h"
 
+void displayPacket(const PacketView &packet)
+{
+    static const char *ipv6FormatString = "%.30s %s %s.%d > %s.%d\n";
+    static const char *ipv4FormatString = "%.30s %s %s:%d > %s:%d\n";
+
+    const char *formatString = packet.isIpv6() ? ipv6FormatString : ipv4FormatString;
+    const auto path{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
+
+    printf(formatString, path.c_str(), packet.transportName().c_str(),
+        packet.sourceAddress().c_str(), packet.sourcePort(),
+        packet.destAddress().c_str(), packet.destPort());
+
+    fflush(stdout);
+}
+
+class AppNames
+{
+public:
+    explicit AppNames(int argc, char** argv);
+
+public:
+    bool isEmpty() const {return _searchStrings.empty();}
+    bool matchesPacket(const PacketView &packet) const;
+
+private:
+    std::vector<std::string> _searchStrings;
+};
+
+AppNames::AppNames(int argc, char** argv)
+{
+    _searchStrings.reserve(argc);
+
+    if(argc <= 1)
+        return;
+
+    for(int i=1; i<argc; ++i)
+        _searchStrings.emplace_back(argv[i]);
+}
+
+bool AppNames::matchesPacket(const PacketView &packet) const
+{
+    return std::any_of(_searchStrings.begin(), _searchStrings.end(), [&](const auto &str) {
+        return PortFinder::ports({str}, packet.ipVersion()).contains(packet.sourcePort());
+    });
+}
+
 int main(int argc, char** argv)
 {
-    using std::cout;
-    using std::vector;
-
     auto bpfDevice = BpfDevice::create("en0");
 
     if(!bpfDevice)
@@ -33,43 +76,23 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    std::cout << "Successfully created bpf device!\n";
+    AppNames appNames{argc, argv};
 
-    vector<std::string> searchStrings;
-    searchStrings.reserve(argc);
-
-    if(argc > 1)
-        for(int i=1; i<argc; ++i) searchStrings.emplace_back(argv[i]);
-
-    while(true)
+    for(;;)
     {
         bpfDevice->onPacketReceived([&](const PacketView &packet)
         {
             if(packet.hasTransport())
             {
-                if(searchStrings.empty())
-                {
-                    const auto path{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
-                    printf("%.30s %s %s.%d > %s.%d\n", path.c_str(), packet.transportName().c_str(),
-                        packet.sourceAddress().c_str(), packet.sourcePort(),
-                        packet.destAddress().c_str(), packet.destPort());
-                }
+                if(appNames.isEmpty())
+                    displayPacket(packet);
+                // If any app names are provided, only
+                // display a packet if it matches one of those names
                 else
                 {
-                    bool stringMatched = std::any_of(searchStrings.begin(), searchStrings.end(),
-                    [&](const auto &str) {
-                        return PortFinder::ports({str}, packet.ipVersion()).contains(packet.sourcePort());
-                    });
-
-                    if(stringMatched)
-                    {
-                        const auto path{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
-                        printf("%.30s %s %s.%d > %s.%d\n", path.c_str(), packet.transportName().c_str(),
-                            packet.sourceAddress().c_str(), packet.sourcePort(),
-                            packet.destAddress().c_str(), packet.destPort());
-                    }
+                    if(appNames.matchesPacket(packet))
+                        displayPacket(packet);
                 }
-                fflush(stdout);
             }
         });
     }

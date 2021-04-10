@@ -2,6 +2,7 @@
 #include <algorithm>
 class Fd
 {
+public:
     enum : int { Invalid = -1 };
 
 public:
