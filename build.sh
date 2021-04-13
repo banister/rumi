@@ -1,3 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
- rm *.o ; g++ -std=c++2a -c *.cpp; g++ -std=c++2a -o columbo *.o
+cmake .
+make
