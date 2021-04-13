@@ -1,4 +1,7 @@
 #!/bin/bash
 
-cmake .
+pushd out
+cmake ..
 make
+
+popd
