@@ -16,23 +16,23 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 #include <iostream>
+#include <fmt/core.h>
 
 #include "port_finder.h"
 #include "bpf_device.h"
 
 void displayPacket(const PacketView &packet)
 {
-    static const char *ipv6FormatString = "%.30s %s %s.%d > %s.%d\n";
-    static const char *ipv4FormatString = "%.30s %s %s:%d > %s:%d\n";
+    static const char *ipv6FormatString = "{:.20} {} {}.{} > {}.{}\n";
+    static const char *ipv4FormatString = "{:.20} {} {}:{} > {}:{}\n";
 
     const char *formatString = packet.isIpv6() ? ipv6FormatString : ipv4FormatString;
     const auto path{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
 
-    printf(formatString, path.c_str(), packet.transportName().c_str(),
-        packet.sourceAddress().c_str(), packet.sourcePort(),
-        packet.destAddress().c_str(), packet.destPort());
+    fmt::print(formatString, path, packet.transportName(), packet.sourceAddress(), packet.sourcePort(),
+        packet.destAddress(), packet.destPort());
 
-    fflush(stdout);
+    ::fflush(stdout);
 }
 
 class AppNames
