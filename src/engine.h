@@ -1,11 +1,18 @@
 #pragma once
 
 #include "common.h"
-#include "vendor/cxxopts.h"
+#include "packet.h"
 
 class Engine
 {
-
 public:
-    int start(int argc, char **argv);
+    virtual ~Engine() = default;
+
+protected:
+    void displayPacket(const PacketView &packet);
+
+protected:
+    virtual void showTraffic(const std::vector<std::string> &appNames) = 0;
+    virtual void showConnections(const std::vector<std::string> &appNames) = 0;
+    virtual std::string portToPath(std::uint16_t, IPVersion ipVersion) = 0;
 };

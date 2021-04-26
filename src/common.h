@@ -1,9 +1,11 @@
 #pragma once
 
+#include <stdexcept>
 #include <optional>
 #include <vector>
 #include <string>
 #include <iostream>
+#include <memory>
 #include <array>
 #include <set>
 #include <span>

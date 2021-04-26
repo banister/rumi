@@ -18,67 +18,23 @@
 #include <iostream>
 #include <fmt/core.h>
 #include "engine.h"
+#include "mac_engine.h"
 
 #include "port_finder.h"
 #include "bpf_device.h"
 
 int main(int argc, char** argv)
 {
+    std::unique_ptr<Engine> engine;
 
-    return Engine{}.start(argc, argv);
-
-/*     popl::OptionParser op{"Allowed options"};
-    auto helpOption = op.add<popl::Switch>("h", "help", "Display this help message.");
-    auto connectionsOption = op.add<popl::Switch>("c", "connections", "Just display active connections.");
-    auto snifferOption = op.add<popl::Switch>("s", "sniffer", "Display traffic for matching apps.");
-    auto interfaceOption = op.add<popl::Value<std::string>>("i", "interface", "The interface(s) to listen on.");
-
-    op.parse(argc, argv);
-
-    // print auto-generated help message
-    if(helpOption->is_set())
+    try
     {
-        std::cout << op << "\n";
-        return 0;
+        engine.reset(new MacEngine(argc, argv));
+    }
+    catch(const std::exception &ex)
+    {
+        std::cerr << "Error: " << ex.what() << "\n";
     }
 
-    std::cout << "non option args\n";
-    for(auto &nonOpt : op.non_option_args())
-        std::cout << nonOpt << std::endl;
-
-    std::cout << "interface args\n";
-    for(auto &opt : interfaceOption->values())
-        std::cout << opt << std::endl;
-
-    return 1;
-
-    auto bpfDevice = BpfDevice::create("en0");
-
-    if(!bpfDevice)
-    {
-        std::cerr << "Could not load bpf device\n";
-        return -1;
-    }
-
-
-    for(;;)
-    {
-        bpfDevice->onPacketReceived([&](const PacketView &packet)
-        {
-            if(packet.hasTransport())
-            {
-                if(appNames.isEmpty())
-                    displayPacket(packet);
-                // If any app names are provided, only
-                // display a packet if it matches one of those names
-                else
-                {
-                    if(appNames.matchesPacket(packet))
-                        displayPacket(packet);
-                }
-            }
-        });
-    }
-    */
     return 0;
 }

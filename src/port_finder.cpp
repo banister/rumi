@@ -3,24 +3,6 @@
 
 namespace
 {
-/* bool isIpv4Local(const Ipv4Address &addr)
-{
-    return addr.isLoopback() || addr.isrivateUse();
-}
-bool isIpv6Local(const Ipv6Address &ipAddr, const QPair<QHostAddress, int> localIpv6Subnet)
-{
-    return false;
-     QHostAddress addr = ipAddr;
-    if(addr.protocol() != QAbstractSocket::IPv6Protocol)
-        return false;
-
-    return addr.isLoopback() || addr.isLinkLocal() || addr.isUniqueLocalUnicast() ||
-        // Verify the subnet is valid
-        // Then check if the ip address contains the "Network Prefix"
-        (localIpv6Subnet.first.protocol() == QAbstractSocket::IPv6Protocol && addr.isInSubnet(localIpv6Subnet));
-}
-*/
-
 // Thin wrapper around socket_info for convenience
 class SocketInfo
 {
