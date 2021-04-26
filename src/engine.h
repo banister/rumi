@@ -12,10 +12,9 @@ public:
     void start(int argc, char **argv);
 
 protected:
-    void displayPacket(const PacketView &packet);
+    void displayPacket(const PacketView &packet, const std::string &appPath);
 
 protected:
     virtual void showTraffic(const std::vector<std::string> &appNames) = 0;
     virtual void showConnections(const std::vector<std::string> &appNames) = 0;
-    virtual std::string portToPath(std::uint16_t, IPVersion ipVersion) = 0;
 };

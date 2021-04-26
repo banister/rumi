@@ -24,11 +24,6 @@ private:
     std::uint16_t _port;
 };
 
-/* inline  qHash(const AddressAndPort &address)
-{
-    return qHash(address.ip()) ^ qHash(address.port());
-}
- */
 namespace PortFinder
 {
     // The maximum number of PIDs we support
@@ -77,12 +72,6 @@ std::set<pid_t> pidsFor(Func_T func)
     // proc_listallpids() returns the total number of PIDs in the system
     // (assuming that maxPids is > than the total PIDs, otherwise it returns maxPids)
     totalPidCount = proc_listallpids(allPidVector.data(), maxPids * sizeof(pid_t));
-
-    if(totalPidCount == maxPids)
-    {
-/*         qWarning() << "Reached max PID count" << maxPids
-            << "- some processes may not be identified";
- */ }
 
     for(int i = 0; i != totalPidCount; ++i)
     {

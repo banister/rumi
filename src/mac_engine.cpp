@@ -9,11 +9,6 @@ bool MacEngine::matchesPacket(const PacketView &packet, const std::vector<std::s
     });
 }
 
-std::string MacEngine::portToPath(std::uint16_t port, IPVersion ipVersion)
-{
-    return PortFinder::portToPath(port, ipVersion);
-}
-
 void MacEngine::showConnections(const std::vector<std::string> &appNames)
 {
 }
@@ -28,16 +23,17 @@ void MacEngine::showTraffic(const std::vector<std::string> &appNames)
     while(true)
     {
         bpfDevice->onPacketReceived([&, this](const PacketView &packet) {
-            if(packet.hasTransport())
+            auto appPath{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
+             if(packet.hasTransport())
             {
                 if(appNames.empty())
-                    displayPacket(packet);
+                    displayPacket(packet, appPath);
                 // If any app names are provided, only
                 // display a packet if it matches one of those names
                 else
                 {
                     if(matchesPacket(packet, appNames))
-                        displayPacket(packet);
+                        displayPacket(packet, appPath);
                 }
             }
         });
