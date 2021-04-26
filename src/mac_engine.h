@@ -7,7 +7,7 @@
 class MacEngine : public Engine
 {
 public:
-    MacEngine(int argc, char **argv);
+    using Engine::Engine;
 
 protected:
     virtual void showTraffic(const std::vector<std::string> &appNames) override;

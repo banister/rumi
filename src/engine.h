@@ -8,6 +8,9 @@ class Engine
 public:
     virtual ~Engine() = default;
 
+public:
+    void start(int argc, char **argv);
+
 protected:
     void displayPacket(const PacketView &packet);
 

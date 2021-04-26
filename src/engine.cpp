@@ -1,6 +1,42 @@
 #include "engine.h"
 #include "packet.h"
 #include <fmt/core.h>
+#include "vendor/cxxopts.h"
+
+void Engine::start(int argc, char **argv)
+{
+    cxxopts::Options options{"Columbo", "Per-app traffic analyzer"};
+
+    options.allow_unrecognised_options();
+    options.add_options()
+        ("h,help", "Display this help message.")
+        ("i,interface", "The interfaces to listen on.", cxxopts::value<std::vector<std::string>>())
+        ("a,analyze", "Analyze traffic.",cxxopts::value<bool>()->default_value("true"))
+        ("s,sockets", "Show socket information.");
+
+    auto result = options.parse(argc, argv);
+
+    const auto &unmatched = result.unmatched();
+    const std::vector<std::string> appNames{unmatched.begin(), unmatched.end()};
+
+    if(result.count("help"))
+    {
+        std::cout << options.help();
+        return;
+    }
+
+    if(result.count("sockets"))
+    {
+        std::cout << "chosen sockets!\n";
+        return;
+    }
+
+    if(result["analyze"].as<bool>())
+    {
+        showTraffic(appNames);
+        return;
+    }
+}
 
 void Engine::displayPacket(const PacketView &packet)
 {
@@ -15,4 +51,3 @@ void Engine::displayPacket(const PacketView &packet)
 
     ::fflush(stdout);
 }
-

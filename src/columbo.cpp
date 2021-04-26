@@ -25,11 +25,16 @@
 
 int main(int argc, char** argv)
 {
+
     std::unique_ptr<Engine> engine;
+
+#if defined(CMB_MACOS)
+    engine = std::make_unique<MacEngine>();
+#endif
 
     try
     {
-        engine.reset(new MacEngine(argc, argv));
+        engine->start(argc, argv);
     }
     catch(const std::exception &ex)
     {
