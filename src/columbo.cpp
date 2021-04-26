@@ -17,57 +17,41 @@
 #include <ifaddrs.h>
 #include <iostream>
 #include <fmt/core.h>
+#include "engine.h"
 
 #include "port_finder.h"
 #include "bpf_device.h"
 
-void displayPacket(const PacketView &packet)
-{
-    static const char *ipv6FormatString = "{:.20} {} {}.{} > {}.{}\n";
-    static const char *ipv4FormatString = "{:.20} {} {}:{} > {}:{}\n";
-
-    const char *formatString = packet.isIpv6() ? ipv6FormatString : ipv4FormatString;
-    const auto path{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
-
-    fmt::print(formatString, path, packet.transportName(), packet.sourceAddress(), packet.sourcePort(),
-        packet.destAddress(), packet.destPort());
-
-    ::fflush(stdout);
-}
-
-class AppNames
-{
-public:
-    explicit AppNames(int argc, char** argv);
-
-public:
-    bool isEmpty() const {return _searchStrings.empty();}
-    bool matchesPacket(const PacketView &packet) const;
-
-private:
-    std::vector<std::string> _searchStrings;
-};
-
-AppNames::AppNames(int argc, char** argv)
-{
-    _searchStrings.reserve(argc);
-
-    if(argc <= 1)
-        return;
-
-    for(int i=1; i<argc; ++i)
-        _searchStrings.emplace_back(argv[i]);
-}
-
-bool AppNames::matchesPacket(const PacketView &packet) const
-{
-    return std::any_of(_searchStrings.begin(), _searchStrings.end(), [&](const auto &str) {
-        return PortFinder::ports({str}, packet.ipVersion()).contains(packet.sourcePort());
-    });
-}
-
 int main(int argc, char** argv)
 {
+
+    return Engine{}.start(argc, argv);
+
+/*     popl::OptionParser op{"Allowed options"};
+    auto helpOption = op.add<popl::Switch>("h", "help", "Display this help message.");
+    auto connectionsOption = op.add<popl::Switch>("c", "connections", "Just display active connections.");
+    auto snifferOption = op.add<popl::Switch>("s", "sniffer", "Display traffic for matching apps.");
+    auto interfaceOption = op.add<popl::Value<std::string>>("i", "interface", "The interface(s) to listen on.");
+
+    op.parse(argc, argv);
+
+    // print auto-generated help message
+    if(helpOption->is_set())
+    {
+        std::cout << op << "\n";
+        return 0;
+    }
+
+    std::cout << "non option args\n";
+    for(auto &nonOpt : op.non_option_args())
+        std::cout << nonOpt << std::endl;
+
+    std::cout << "interface args\n";
+    for(auto &opt : interfaceOption->values())
+        std::cout << opt << std::endl;
+
+    return 1;
+
     auto bpfDevice = BpfDevice::create("en0");
 
     if(!bpfDevice)
@@ -76,7 +60,6 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    AppNames appNames{argc, argv};
 
     for(;;)
     {
@@ -96,5 +79,6 @@ int main(int argc, char** argv)
             }
         });
     }
+    */
     return 0;
 }

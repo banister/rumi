@@ -18,6 +18,12 @@ public:
      {
      }
 
+     /* BpfDevice(Fd fd, std::uint32_t bufferLength)
+     : _fd{std::move(fd)}
+     , _bufferLength{bufferLength}
+     {
+     }
+ */
  public:
      template <typename Func_T>
      void onPacketReceived(Func_T func) const

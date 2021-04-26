@@ -11,7 +11,8 @@ IPv4Address::IPv4Address(const std::string &addressString)
 std::string IPv4Address::toString() const
 {
     char buf[INET_ADDRSTRLEN]{};
-    if(inet_ntop(AF_INET, &_address, buf, sizeof(buf)))
+    std::uint32_t networkOrder{htonl(_address)};
+    if(inet_ntop(AF_INET, &networkOrder, buf, sizeof(buf)))
         return buf;
     else
         return {};

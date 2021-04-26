@@ -9,6 +9,7 @@
 #include <span>
 #include <variant>
 #include <compare>
+#include <functional>
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/errno.h>
