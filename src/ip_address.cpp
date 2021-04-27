@@ -23,11 +23,6 @@ IPv6Address::IPv6Address(const std::string &addressString)
     inet_pton(AF_INET6, addressString.c_str(), _address);
 }
 
-IPv6Address::IPv6Address(const AddressType &address)
-{
-    std::copy(std::begin(address), std::end(address), std::begin(_address));
-}
-
 IPv6Address::IPv6Address(const std::uint8_t *pAddress)
 {
     std::copy(pAddress, pAddress + sizeof(AddressType), std::begin(_address));

@@ -27,7 +27,7 @@ void Engine::start(int argc, char **argv)
 
     if(result.count("sockets"))
     {
-        std::cout << "chosen sockets!\n";
+        showConnections(appNames);
         return;
     }
 

@@ -3,6 +3,10 @@
 #include <libproc.h>  // for proc_pidpath()
 #include <set>
 #include "common.h"
+
+namespace PortFinder
+{
+
 class AddressAndPort
 {
 public:
@@ -24,8 +28,41 @@ private:
     std::uint16_t _port;
 };
 
-namespace PortFinder
+std::string pidToPath(pid_t);
+
+// Thin wrapper around socket_info for convenience
+class Connection
 {
+public:
+    explicit Connection(socket_info pSocketInfo, pid_t pid)
+    : _socketInfo{std::move(pSocketInfo)}
+    , _pid{pid}
+    {}
+
+    //Ipv4
+    std::uint32_t localIp4() const {return isIpv4() ? ntohl(inetInfo().insi_laddr.ina_46.i46a_addr4.s_addr) : 0;}
+    std::uint32_t remoteIp4() const {return isIpv4() ? ntohl(inetInfo().insi_faddr.ina_46.i46a_addr4.s_addr) : 0;}
+    // Ipv6 (return by reference as the members are quite large)
+    const auto& localIp6() const {return isIpv6() ? inetInfo().insi_laddr.ina_6.s6_addr : _nullIpv6Address;}
+    const auto& remoteIp6() const {return isIpv6() ? inetInfo().insi_faddr.ina_6.s6_addr : _nullIpv6Address;}
+    bool isIpv6AnyAddress() const;
+    std::uint16_t localPort() const {return ntohs(inetInfo().insi_lport);}
+    std::uint32_t remotePort() const {return ntohs(inetInfo().insi_fport);}
+    int protocol() const {return _socketInfo.soi_protocol;}
+    bool isIpv4() const {return isIpVersion(INI_IPV4);}
+    bool isIpv6() const {return isIpVersion(INI_IPV6);}
+    pid_t pid() const {return _pid;}
+    std::string path() const {return pidToPath(_pid);}
+
+    std::string toString() const;
+private:
+    std::uint8_t isIpVersion(std::uint8_t flag) const {return inetInfo().insi_vflag & flag;}
+    const in_sockinfo& inetInfo() const {return _socketInfo.soi_proto.pri_in;}
+private:
+    unsigned char _nullIpv6Address[16]{};
+    socket_info _socketInfo;
+    pid_t _pid;
+};
     // The maximum number of PIDs we support
 enum { maxPids = 16384 };
 
@@ -36,6 +73,8 @@ std::set<AddressAndPort> addresses4(const std::vector<std::string> &paths);
 pid_t portToPid(std::uint16_t port, IPVersion ipVersion=IPv4);
 std::string pidToPath(pid_t);
 std::string portToPath(std::uint16_t port, IPVersion ipVersion);
+std::vector<Connection> connections(const std::set<pid_t> &pids, IPVersion ipVersion);
+std::vector<Connection> connections(const std::vector<std::string> &paths, IPVersion ipVersion);
 bool matchesPath(const std::vector<std::string> &paths, pid_t pid);
 
 template <typename Func_T>

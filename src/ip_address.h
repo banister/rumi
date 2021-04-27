@@ -25,7 +25,6 @@ class IPv6Address
 public:
     IPv6Address() : _address{} {}
     IPv6Address(const std::string &addressString);
-    IPv6Address(const AddressType &address);
     IPv6Address(const std::uint8_t* pAddress);
     IPv6Address(const in6_addr &address);
     auto operator<=>(const IPv6Address&) const = default;

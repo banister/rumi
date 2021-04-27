@@ -11,6 +11,20 @@ bool MacEngine::matchesPacket(const PacketView &packet, const std::vector<std::s
 
 void MacEngine::showConnections(const std::vector<std::string> &appNames)
 {
+    std::cout << "Connections for ";
+    for(const auto &name : appNames)
+        std::cout << name << " " << "\n";
+
+    std::cout << "Ipv4\n";
+    const auto connections4 = PortFinder::connections({25673}, IPv4);
+    for(const auto &c : connections4)
+        std::cout << c.toString() << "\n";
+
+    const auto connections6 = PortFinder::connections(appNames, IPv6);
+    for(const auto &c : connections6)
+        std::cout << c.toString() << "\n";
+
+
 }
 
 void MacEngine::showTraffic(const std::vector<std::string> &appNames)
