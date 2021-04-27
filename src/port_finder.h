@@ -55,6 +55,12 @@ public:
     std::string path() const {return pidToPath(_pid);}
 
     std::string toString() const;
+
+    friend std::ostream& operator<<(std::ostream& os, const Connection &conn)
+    {
+        os << conn.toString();
+        return os;
+    }
 private:
     std::uint8_t isIpVersion(std::uint8_t flag) const {return inetInfo().insi_vflag & flag;}
     const in_sockinfo& inetInfo() const {return _socketInfo.soi_proto.pri_in;}

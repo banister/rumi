@@ -273,7 +273,7 @@ std::string PacketView::toString() const
 std::string PacketView::sourceAddress() const
 {
     if(std::holds_alternative<Packet4>(_packet))
-        return IPv4Address{ntohl(std::get<Packet4>(_packet).sourceAddress())}.toString();
+        return IPv4Address{std::get<Packet4>(_packet).sourceAddress()}.toString();
     else
         return IPv6Address{std::get<Packet6>(_packet).sourceAddress()}.toString();
 }
@@ -281,7 +281,7 @@ std::string PacketView::sourceAddress() const
 std::string PacketView::destAddress() const
 {
     if(std::holds_alternative<Packet4>(_packet))
-        return IPv4Address{ntohl(std::get<Packet4>(_packet).destAddress())}.toString();
+        return IPv4Address{std::get<Packet4>(_packet).destAddress()}.toString();
     else
         return IPv6Address{std::get<Packet6>(_packet).destAddress()}.toString();
 }

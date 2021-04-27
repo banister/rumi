@@ -20,9 +20,6 @@
 #include "engine.h"
 #include "mac_engine.h"
 
-#include "port_finder.h"
-#include "bpf_device.h"
-
 int main(int argc, char** argv)
 {
 
