@@ -33,11 +33,29 @@ std::string pidToPath(pid_t);
 // Thin wrapper around socket_info for convenience
 class Connection
 {
+private:
+    Connection()
+    : _pid{}
+    , _socketInfo{}
+    {}
+
 public:
     explicit Connection(socket_info pSocketInfo, pid_t pid)
     : _socketInfo{std::move(pSocketInfo)}
     , _pid{pid}
     {}
+
+    Connection(const Connection&) = default;
+    Connection& operator=(const Connection&) = default;
+
+    // TODO: implement!
+/*     Connection(Connection&& rhs) noexcept : Connection{}
+    {
+        std::swap(_pid, rhs._pid);
+        std::swap(_socketInfo, rhs._socketInfo);
+    }
+ */
+    Connection & operator=(Connection&& connection) noexcept;
 
     //Ipv4
     std::uint32_t localIp4() const {return isIpv4() ? ntohl(inetInfo().insi_laddr.ina_46.i46a_addr4.s_addr) : 0;}
@@ -54,7 +72,8 @@ public:
     pid_t pid() const {return _pid;}
     std::string path() const {return pidToPath(_pid);}
 
-    std::string toString() const;
+    std::string toString() const {return buildString(false);}
+    std::string toVerboseString() const {return buildString(true);}
 
     friend std::ostream& operator<<(std::ostream& os, const Connection &conn)
     {
@@ -62,6 +81,7 @@ public:
         return os;
     }
 private:
+    std::string buildString(bool verbose) const;
     std::uint8_t isIpVersion(std::uint8_t flag) const {return inetInfo().insi_vflag & flag;}
     const in_sockinfo& inetInfo() const {return _socketInfo.soi_proto.pri_in;}
 private:

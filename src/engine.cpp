@@ -12,12 +12,16 @@ void Engine::start(int argc, char **argv)
         ("h,help", "Display this help message.")
         ("i,interface", "The interfaces to listen on.", cxxopts::value<std::vector<std::string>>())
         ("a,analyze", "Analyze traffic.",cxxopts::value<bool>()->default_value("true"))
-        ("s,sockets", "Show socket information.");
+        ("s,sockets", "Show socket information.")
+        ("v,verbose", "Verbose output.",cxxopts::value<bool>()->default_value("false"));
 
     auto result = options.parse(argc, argv);
 
     const auto &unmatched = result.unmatched();
     const std::vector<std::string> appNames{unmatched.begin(), unmatched.end()};
+
+    // Setup config options
+    _config.verbose = result["verbose"].as<bool>();
 
     if(result.count("help"))
     {
@@ -27,13 +31,13 @@ void Engine::start(int argc, char **argv)
 
     if(result.count("sockets"))
     {
-        showConnections(appNames);
+        showConnections(appNames, IPVersion::Both);
         return;
     }
 
     if(result["analyze"].as<bool>())
     {
-        showTraffic(appNames);
+        showTraffic(appNames, IPVersion::Both);
         return;
     }
 }

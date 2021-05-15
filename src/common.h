@@ -30,4 +30,14 @@
 
 // Types
 using PortSet = std::set<std::uint16_t>;
-enum IPVersion { IPv4, IPv6 };
+enum IPVersion { IPv4, IPv6, Both };
+
+inline std::string ipVersionToString(IPVersion ipVersion)
+{
+    if(ipVersion == IPv4)
+        return "IPv4";
+    else if(ipVersion == IPv6)
+        return "IPv6";
+    else
+        return "IPv4/IPv6";
+}

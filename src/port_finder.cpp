@@ -1,7 +1,10 @@
 #include <fmt/core.h>
+#include <filesystem>
 #include "common.h"
 #include "port_finder.h"
 #include "ip_address.h"
+
+namespace fs = std::filesystem;
 
 bool PortFinder::Connection::isIpv6AnyAddress() const
 {
@@ -14,21 +17,22 @@ bool PortFinder::Connection::isIpv6AnyAddress() const
     });
 }
 
-std::string PortFinder::Connection::toString() const
+std::string PortFinder::Connection::buildString(bool verbose) const
 {
     const char *formatString = isIpv4() ? "{} {}:{} -> {}:{} {}" : "{} {}.{} -> {}.{} {}";
 
-    std::string protocol = this->protocol() == IPPROTO_TCP ? "TCP" : "UDP";
+    const std::string protocol = this->protocol() == IPPROTO_TCP ? "TCP" : "UDP";
+    const std::string filePath = verbose ? path() : static_cast<std::string>(fs::path(path()).filename());
 
     if(isIpv4())
     {
         return fmt::format(formatString, protocol, IPv4Address{localIp4()}.toString(),
-            localPort(), IPv4Address{remoteIp4()}.toString(), remotePort(), path());
+            localPort(), IPv4Address{remoteIp4()}.toString(), remotePort(), filePath);
     }
     else
     {
         return fmt::format(formatString, protocol, IPv6Address{localIp6()}.toString(),
-            localPort(), IPv6Address{remoteIp6()}.toString(), remotePort(), path());
+            localPort(), IPv6Address{remoteIp6()}.toString(), remotePort(), filePath);
     }
 }
 
