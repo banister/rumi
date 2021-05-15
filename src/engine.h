@@ -15,11 +15,12 @@ protected:
     void displayPacket(const PacketView &packet, const std::string &appPath);
 
 protected:
-    virtual void showTraffic(const std::vector<std::string> &appNamesm, IPVersion ipVersion) = 0;
-    virtual void showConnections(const std::vector<std::string> &appNames, IPVersion ipVersion) = 0;
+    virtual void showTraffic(const std::vector<std::string> &appNamesm) = 0;
+    virtual void showConnections(const std::vector<std::string> &appNames) = 0;
 protected:
     struct Config
     {
         bool verbose;
+        IPVersion ipVersion;
     } _config{};
 };

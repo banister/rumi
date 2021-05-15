@@ -13,7 +13,9 @@ void Engine::start(int argc, char **argv)
         ("i,interface", "The interfaces to listen on.", cxxopts::value<std::vector<std::string>>())
         ("a,analyze", "Analyze traffic.",cxxopts::value<bool>()->default_value("true"))
         ("s,sockets", "Show socket information.")
-        ("v,verbose", "Verbose output.",cxxopts::value<bool>()->default_value("false"));
+        ("v,verbose", "Verbose output.",cxxopts::value<bool>()->default_value("false"))
+        ("4,inet", "IPv4 only.",cxxopts::value<bool>()->default_value("false"))
+        ("6,inet6", "IPv6 only.",cxxopts::value<bool>()->default_value("false"));
 
     auto result = options.parse(argc, argv);
 
@@ -23,6 +25,18 @@ void Engine::start(int argc, char **argv)
     // Setup config options
     _config.verbose = result["verbose"].as<bool>();
 
+    // Default to both ipv4 and ipv6
+    _config.ipVersion = IPVersion::Both;
+    // If both specified, then use both
+    if(result["inet"].as<bool>() && result["inet6"].as<bool>())
+        _config.ipVersion = IPVersion::Both;
+    // Otherwise just ipv4 (if specified)
+    else if(result["inet"].as<bool>())
+        _config.ipVersion = IPVersion::IPv4;
+    // Or just ipv6 (if specified)
+    else if(result["inet6"].as<bool>())
+        _config.ipVersion = IPVersion::IPv6;
+
     if(result.count("help"))
     {
         std::cout << options.help();
@@ -31,13 +45,13 @@ void Engine::start(int argc, char **argv)
 
     if(result.count("sockets"))
     {
-        showConnections(appNames, IPVersion::Both);
+        showConnections(appNames);
         return;
     }
 
     if(result["analyze"].as<bool>())
     {
-        showTraffic(appNames, IPVersion::Both);
+        showTraffic(appNames);
         return;
     }
 }

@@ -12,29 +12,31 @@ bool MacEngine::matchesPacket(const PacketView &packet, const std::vector<std::s
     });
 }
 
-void MacEngine::showConnections(const std::vector<std::string> &appNames, IPVersion ipVersion)
+void MacEngine::showConnections(const std::vector<std::string> &appNames)
 {
-    if(ipVersion == Both)
-    {
-        showConnections(appNames, IPv4);
-        showConnections(appNames, IPv6);
-        return;
-    }
     std::string(PortFinder::Connection::*fptr)() const = nullptr;
     fptr = _config.verbose ? &PortFinder::Connection::toVerboseString : &PortFinder::Connection::toString;
 
-    // Must run cmb as sudo to show all sockets, otherwise some are missed
-    std::cout << "Connections for ";
-    for(const auto &name : appNames)
-        std::cout << name << " " << "\n";
+    auto showConnectionsForIPVersion = [&, this](IPVersion ipVersion)
+    {
+        std::cout << ipVersionToString(ipVersion) << "\n==\n";
+        // Must run cmb as sudo to show all sockets, otherwise some are missed
+        const auto connections4 = PortFinder::connections(appNames, ipVersion);
+        for(const auto &conn : connections4)
+            std::cout << (conn.*fptr)() << "\n";
+    };
 
-    std::cout << ipVersionToString(ipVersion) << "\n==\n";
-    const auto connections4 = PortFinder::connections(appNames, ipVersion);
-    for(const auto &conn : connections4)
-        std::cout << (conn.*fptr)() << "\n";
+    if(_config.ipVersion == IPVersion::Both)
+    {
+        showConnectionsForIPVersion(IPv4);
+        showConnectionsForIPVersion(IPv6);
+    }
+    else
+        showConnectionsForIPVersion(_config.ipVersion);
 }
 
-void MacEngine::showTraffic(const std::vector<std::string> &appNames, IPVersion ipVersion)
+
+void MacEngine::showTraffic(const std::vector<std::string> &appNames)
 {
     auto bpfDevice = BpfDevice::create("en0");
 
@@ -46,6 +48,11 @@ void MacEngine::showTraffic(const std::vector<std::string> &appNames, IPVersion 
         bpfDevice->onPacketReceived([&, this](const PacketView &packet) {
             const std::string fullPath{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
             const std::string path = _config.verbose ? fullPath : static_cast<std::string>(fs::path(fullPath).filename());
+
+            if(_config.ipVersion != IPVersion::Both)
+                // Skip packets with wrong ipVersion
+                if(packet.ipVersion() != _config.ipVersion)
+                    return;
 
              if(packet.hasTransport())
              {
