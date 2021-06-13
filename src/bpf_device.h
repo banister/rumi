@@ -9,22 +9,21 @@
 class BpfDevice
 {
 public:
-     static std::optional<BpfDevice> create(const std::string &interfaceName);
+     BpfDevice(const std::string &interfaceName);
 
- public:
-     BpfDevice(Fd fd, std::uint32_t bufferLength)
-     : _fd{std::move(fd)}
-     , _bufferLength{bufferLength}
-     {
-     }
+private:
+   enum : size_t { MaxBpfNumber = 99 };
 
-     /* BpfDevice(Fd fd, std::uint32_t bufferLength)
-     : _fd{std::move(fd)}
-     , _bufferLength{bufferLength}
-     {
-     }
- */
- public:
+   struct InterfaceConfig
+   {
+       Fd fd;
+       std::uint32_t bufferLength{0};
+    };
+
+private:
+    InterfaceConfig findAndConfigureInterface(const std::string &interfaceName) const;
+
+public:
      template <typename Func_T>
      void onPacketReceived(Func_T func) const
      {

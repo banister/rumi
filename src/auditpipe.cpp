@@ -6,42 +6,23 @@
 
 namespace
 {
-    const char* auditPipeLocation{"/dev/auditpipe"};
+    const char auditPipeLocation[]{"/dev/auditpipe"};
 
-    uint32_t selectionFlags =
-        // 0x00000000 | // Invalid Class (no)
-        // 0x00000001 | // File read (fr)
-        // 0x00000002 | // File write (fw)
-        // 0x00000004 | // File attribute access (fa)
-        // 0x00000008 | // File attribute modify (fm)
-        // 0x00000010 | // File create (fc)
-        // 0x00000020 | // File delete (fd)
-        // 0x00000040 | // File close (cl)
-        0x00000080 | // Process (pc)
-        // 0x00000100 | // Network (nt)
-        // 0x00000200 | // IPC (ip)
-        // 0x00000400 | // Non attributable (na)
-        // 0x00000800 | // Administrative (ad)
-        // 0x00001000 | // Login/Logout (lo)
-        // 0x00002000 | // Authentication and authorization (aa)
-        // 0x00004000 | // Application (ap)
-        // 0x20000000 | // ioctl (io)
-        0x40000000; // | // exec (ex)
-        // 0x80000000 | // Miscellaneous (ot)
-        // 0xffffffff ; // All flags set (all)
+    // See /etc/security/audit_class for the full list
+    // We're only interested in process and exec audit events.
+    uint32_t selectionFlags = 0x00000080 | // process (pc)
+                              0x40000000;  // exec (ex)
 
     pid_t getppid(pid_t pid)
     {
-        pid_t ppid{-1};
+        pid_t ppid{};
         kinfo_proc proc{};
         size_t procBufferSize{sizeof(kinfo_proc)};
         const uint32_t mibLength{4};
-
-        //init mib
+        // Initialize the mib
         int mib[mibLength] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
         auto ret = sysctl(mib, mibLength, &proc, &procBufferSize, nullptr, 0);
 
-        //check if got ppid
         if(ret == 0 && procBufferSize != 0)
             ppid = proc.kp_eproc.e_ppid;
 
@@ -52,14 +33,14 @@ namespace
     {
         std::string path;
         path.resize(PROC_PIDPATHINFO_MAXSIZE);
-        proc_pidpath(pid, &path[0], path.size());
+        proc_pidpath(pid, path.data(), path.size());
         return path;
     }
 }
 
 AuditPipe::AuditPipe()
 {
-    auto auditFile = AutoCloseFile{::fopen(auditPipeLocation, "r")};
+    AutoCloseFile auditFile{::fopen(auditPipeLocation, "r")};
     if(auditFile == nullptr)
         throw SystemError("Could not construct audit pipe");
 
@@ -84,33 +65,33 @@ AuditPipe::AuditPipe()
         throw SystemError("Could not set preselection NA flags");
 
     if(::ioctl(fd, AUDITPIPE_FLUSH) == -1)
-        std::cerr << "Could not flush pipe " << ErrorTracer{errno};
+        std::cerr << "Could not flush pipe " << ErrorTracer{};  // Non critical error
 
     _auditFile = std::move(auditFile);
 }
 
 void AuditPipe::readLoop() const
 {
-    std::optional<ProcessEvent> pProcess;
-    std::optional<ProcessEvent> pLastFork;
+    std::optional<ProcessEvent> pProcessEvent;
+    std::optional<ProcessEvent> pLastForkEvent;
 
-    while (true)
+    while(true)
     {
-        //read a single audit record
-        // note: buffer is allocated by function, so must be freed when done
         uint8_t *recordBuffer{nullptr};
+        // Buffer is allocated on the heap - we ensure it's freed later with a scope guard
         auto recordLength = au_read_rec(_auditFile, &recordBuffer);
 
-        if (recordLength == -1)
+        if(recordLength == -1)
             continue;
 
-        auto cleanup = scopeGuard([&recordBuffer] { if (recordBuffer) ::free(recordBuffer); });
+        // Cleanup allocated buffer
+        auto cleanup = scopeGuard([&recordBuffer] { if(recordBuffer) ::free(recordBuffer); });
 
         auto recordBalance{recordLength};
         auto processedLength{0};
 
-        pProcess.emplace();
-        pLastFork.emplace();
+        pProcessEvent.emplace();
+        pLastForkEvent.emplace();
 
         while(recordBalance != 0)
         {
@@ -120,26 +101,23 @@ void AuditPipe::readLoop() const
             if(ret == -1)
                 break;
 
-            processToken(token, *pProcess, *pLastFork);
+            processToken(token, *pProcessEvent, *pLastForkEvent);
 
-            if(pProcess->mode == ProcessEvent::Starting && !pProcess->arguments.empty())
+            if(!pProcessEvent->arguments.empty())
             {
-                _procStartedFunc(*pProcess);
-            }
-            else if(pProcess->mode == ProcessEvent::Exiting && !pProcess->arguments.empty())
-            {
-                _procExitedFunc(*pProcess);
+                if(pProcessEvent->mode == ProcessEvent::Starting)
+                    _procStartedFunc(*pProcessEvent);
+                else if(pProcessEvent->mode == ProcessEvent::Exiting)
+                    _procExitedFunc(*pProcessEvent);
             }
 
-            // add length of current token
             processedLength += token.len;
-            //subtract length of current token
             recordBalance -= token.len;
         }
     }
 }
 
-void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, ProcessEvent &lastFork) const
+void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &processEvent, ProcessEvent &lastForkEvent) const
 {
     auto shouldProcessRecord = [](uint16_t eventType)
     {
@@ -151,123 +129,78 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, Pro
 
     switch(token.id)
     {
-    //handle start of record
-    // grab event type, which allows us to ignore events not of interest
+    // Determine process type from header
     case AUT_HEADER32:
     case AUT_HEADER32_EX:
     case AUT_HEADER64:
     case AUT_HEADER64_EX:
     {
-        //save type
-        process.type = token.tt.hdr32.e_type;
-
+        processEvent.type = token.tt.hdr32.e_type;
         break;
     }
 
-    //path
-    // note: this might be updated/replaced later (if it's '/dev/null', etc)
+    // Save the path of the process
     case AUT_PATH:
     {
-        //save path
-        process.path = token.tt.path.path;
-
+        processEvent.path = token.tt.path.path;
         break;
     }
 
-    //subject
-    //  extract/save pid || ppid
-    //  all these cases can be treated as subj32 cuz only accessing initial members
+    // Get pid and ppid
     case AUT_SUBJECT32:
     case AUT_SUBJECT32_EX:
     case AUT_SUBJECT64:
     case AUT_SUBJECT64_EX:
     {
-        //SPAWN (pid/ppid)
-        // if there was an AUT_ARG32 (which always come first), that's the pid! so this will be the ppid
-        if(AUE_POSIX_SPAWN == process.type)
+        if(AUE_POSIX_SPAWN == processEvent.type)
         {
-            //no AUT_ARG32?
-            // set as pid, and try manually to get ppid
-            if(process.pid == 0)
+            if(processEvent.pid == 0)
             {
-                //set pid
-                process.pid = token.tt.subj32.pid;
-                //manually get parent
-                process.ppid = getppid(process.pid);
+                processEvent.pid = token.tt.subj32.pid;
+                processEvent.ppid = getppid(processEvent.pid);
             }
-            //pid already set (via AUT_ARG32)
-            // this then, is the ppid
             else
             {
-                //set ppid
-                process.ppid = token.tt.subj32.pid;
+                processEvent.ppid = token.tt.subj32.pid;
             }
         }
-
-        //FORK
-        // ppid (pid is in AUT_ARG32)
-        else if(AUE_FORK == process.type)
-            //set ppid
-            process.ppid = token.tt.subj32.pid;
-
-        //AUE_EXEC/VE & AUE_EXIT
-        // this is the pid
+        else if(AUE_FORK == processEvent.type)
+        {
+            processEvent.ppid = token.tt.subj32.pid;
+        }
         else
         {
-            //save pid
-            process.pid = token.tt.subj32.pid;
-            //manually get parent
-            process.ppid = getppid(process.pid);
+            processEvent.pid = token.tt.subj32.pid;
+            processEvent.ppid = getppid(processEvent.pid);
         }
 
-        //get effective user id
-        process.uid = token.tt.subj32.euid;
-
+        processEvent.uid = token.tt.subj32.euid;
         break;
     }
 
-    //args
-    // SPAWN/FORK this is pid
+    // Get pid
     case AUT_ARG32:
     case AUT_ARG64:
     {
-        //save pid
-        if((AUE_POSIX_SPAWN == process.type) ||
-            (AUE_FORK == process.type))
+        if(AUE_POSIX_SPAWN == processEvent.type || AUE_FORK == processEvent.type)
         {
-            //32bit
             if(AUT_ARG32 == token.id)
-            {
-                //save
-                process.pid = token.tt.arg32.val;
-            }
-            //64bit
+                processEvent.pid = token.tt.arg32.val;
             else
-            {
-                //save
-                process.pid = static_cast<pid_t>(token.tt.arg64.val);
-            }
+                processEvent.pid = static_cast<pid_t>(token.tt.arg64.val);
         }
 
-        //FORK
-        // doesn't have token for path, so try manually find it now
-        if(AUE_FORK == process.type)
-        {
-            //set path
-            process.path.resize(PROC_PIDPATHINFO_MAXSIZE);
-            proc_pidpath(process.pid, process.path.data(), process.path.size());
-        }
+        if(AUE_FORK == processEvent.type)
+            processEvent.path = pidToPath(processEvent.pid);
 
         break;
     }
 
-    //exec args
-    // just save into args
+    // Store args
     case AUT_EXEC_ARGS:
     {
-        //save args
         auto argCount{token.tt.execarg.count};
-        process.arguments.reserve(argCount);
+        processEvent.arguments.reserve(argCount);
 
         for(size_t i = 0; i < argCount; ++i)
         {
@@ -275,63 +208,46 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, Pro
             if(argument == nullptr)
                 continue;
 
-            //add argument
-            process.arguments.emplace_back(argument);
+            processEvent.arguments.emplace_back(argument);
         }
-
         break;
     }
 
-    //exit
-    // save status
+    // Exit status
     case AUT_EXIT:
     {
-        //save
-        process.exitStatus = token.tt.exit.status;
-
+        processEvent.exitStatus = token.tt.exit.status;
         break;
     }
 
-    //record trailer
-    // end/save, etc
+    // Trailer (parsing is complete)
     case AUT_TRAILER:
     {
-        if(shouldProcessRecord(process.type))
+        if(shouldProcessRecord(processEvent.type))
         {
-            //handle process exits
-            if(AUE_EXIT == process.type)
-                process.mode = ProcessEvent::Exiting;
-
-            //handle process starts
+            if(AUE_EXIT == processEvent.type)
+            {
+                processEvent.mode = ProcessEvent::Exiting;
+            }
             else
             {
-                //also try get process path
-                // this is the most 'trusted way' (since exec_args can change)
-                process.path = pidToPath(process.pid);
+                processEvent.path = pidToPath(processEvent.pid);
 
-                //failed to get path at runtime
-                // if 'AUT_PATH' was something like '/dev/null' or '/dev/console' use arg[0]...yes this can be spoofed :/
-                if(process.path.empty() || (process.path.starts_with("/dev/") && !process.arguments.empty()))
-                    process.path = process.arguments[0];
+                if(processEvent.path.empty() || (processEvent.path.starts_with("/dev/") && !processEvent.arguments.empty()))
+                    processEvent.path = processEvent.arguments[0];
 
-                //save fork events
-                // this will have ppid that can be used for child events (exec/spawn, etc)
-                if(AUE_FORK == process.type)
-                    lastFork = process;
+                if(AUE_FORK == processEvent.type)
+                    lastForkEvent = processEvent;
 
-                //when we don't have a ppid
-                // see if there was a 'matching' fork() that has it (only for non AUE_FORK events)
-                else if(process.ppid && lastFork.pid == process.pid)
-                    process.ppid = lastFork.ppid;
+                else if(processEvent.ppid && lastForkEvent.pid == processEvent.pid)
+                    processEvent.ppid = lastForkEvent.ppid;
 
-                //handle new process
-                process.mode = ProcessEvent::Starting;
+                processEvent.mode = ProcessEvent::Starting;
             }
         }
         break;
     }
-
-    default:;
-
-    } //process token
+    default: // No-op
+    ;
+    }
 }

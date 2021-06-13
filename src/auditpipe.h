@@ -10,16 +10,16 @@ class AuditPipe
 public:
     struct ProcessEvent
     {
+        enum Mode {Unknown, Starting, Exiting};
+        Mode mode{Mode::Unknown};
+
         uint16_t type{};
-        std::string path;
         pid_t pid{};
         pid_t ppid{};
         uid_t uid{};
-        std::vector<std::string> arguments;
         uint32_t exitStatus{};
-
-        enum Mode {Unknown, Starting, Exiting};
-        Mode mode{Mode::Unknown};
+        std::string path;
+        std::vector<std::string> arguments;
     };
 
 private:

@@ -30,8 +30,8 @@ void MacEngine::showConnections(const std::vector<std::string> &appNames)
     {
         std::cout << ipVersionToString(ipVersion) << "\n==\n";
         // Must run cmb as sudo to show all sockets, otherwise some are missed
-        const auto connections4 = PortFinder::connections(appNames, ipVersion);
-        for(const auto &conn : connections4)
+        const auto connections = PortFinder::connections(appNames, ipVersion);
+        for(const auto &conn : connections)
             std::cout << (conn.*fptr)() << "\n";
     };
 
@@ -46,19 +46,16 @@ void MacEngine::showConnections(const std::vector<std::string> &appNames)
 
 void MacEngine::showTraffic(const std::vector<std::string> &appNames)
 {
-    auto bpfDevice = BpfDevice::create("en0");
-
-    if(!bpfDevice)
-        throw std::runtime_error("could not load bpf device");
+    BpfDevice bpfDevice{"en0"};
 
     while(true)
     {
-        bpfDevice->onPacketReceived([&, this](const PacketView &packet) {
+        bpfDevice.onPacketReceived([&, this](const PacketView &packet) {
             const std::string fullPath{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
             const std::string path = _config.verbose ? fullPath : basename(fullPath);
 
             if(_config.ipVersion != IPVersion::Both)
-                // Skip packets with wrong ipVersion
+                // Skip packets with unwanted ipVersion
                 if(packet.ipVersion() != _config.ipVersion)
                     return;
 
