@@ -3,6 +3,25 @@
 #include <fmt/core.h>
 #include "vendor/cxxopts.h"
 
+namespace
+{
+    void decideIpVersion(IPVersion &ipVersion, const cxxopts::ParseResult &result)
+    {
+        // If both specified, then use both
+        if(result["inet"].as<bool>() && result["inet6"].as<bool>())
+            ipVersion = IPVersion::Both;
+        // Otherwise just ipv4 (if specified)
+        else if(result["inet"].as<bool>())
+            ipVersion = IPVersion::IPv4;
+        // Or just ipv6 (if specified)
+        else if(result["inet6"].as<bool>())
+            ipVersion = IPVersion::IPv6;
+        else
+            // Default to both ipv4 and ipv6
+            ipVersion = IPVersion::Both;
+    }
+}
+
 void Engine::start(int argc, char **argv)
 {
     cxxopts::Options options{"Columbo", "Per-app traffic analyzer"};
@@ -26,17 +45,7 @@ void Engine::start(int argc, char **argv)
     // Setup config options
     _config.verbose = result["verbose"].as<bool>();
 
-    // Default to both ipv4 and ipv6
-    _config.ipVersion = IPVersion::Both;
-    // If both specified, then use both
-    if(result["inet"].as<bool>() && result["inet6"].as<bool>())
-        _config.ipVersion = IPVersion::Both;
-    // Otherwise just ipv4 (if specified)
-    else if(result["inet"].as<bool>())
-        _config.ipVersion = IPVersion::IPv4;
-    // Or just ipv6 (if specified)
-    else if(result["inet6"].as<bool>())
-        _config.ipVersion = IPVersion::IPv6;
+    decideIpVersion(_config.ipVersion, result);
 
     if(result.count("help"))
     {
@@ -61,8 +70,6 @@ void Engine::start(int argc, char **argv)
         showTraffic(appNames);
         return;
     }
-
-
 }
 
 void Engine::displayPacket(const PacketView &packet, const std::string &appPath)

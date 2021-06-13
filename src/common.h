@@ -4,11 +4,13 @@
 #include <optional>
 #include <vector>
 #include <string>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <array>
 #include <set>
 #include <span>
+#include <fmt/core.h>
 #include <variant>
 #include <compare>
 #include <functional>

@@ -16,7 +16,7 @@ public:
 class ErrorTracer : public Traceable<ErrorTracer>
 {
 public:
-    ErrorTracer(int code) : _code{code} {}
+    ErrorTracer(int code = errno) : _code{code} {}
 
 public:
     std::string toString() const;
@@ -89,3 +89,21 @@ ScopeGuard<FuncT> scopeGuard(FuncT func)
 {
     return ScopeGuard<FuncT>(func);
 }
+
+class SystemError : public std::exception
+{
+public:
+    SystemError(const std::string &msg)
+    {
+        _msg = fmt::format("{} - {}", msg, ErrorTracer{}.toString());
+    }
+
+public:
+    virtual const char* what() const noexcept override
+    {
+        return _msg.c_str();
+    }
+
+private:
+    std::string _msg;
+};

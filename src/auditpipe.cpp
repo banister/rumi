@@ -61,27 +61,27 @@ AuditPipe::AuditPipe()
 {
     auto auditFile = AutoCloseFile{::fopen(auditPipeLocation, "r")};
     if(auditFile == nullptr)
-        throw std::runtime_error(std::string("Could not construct audit pipe ") + ErrorTracer{errno}.toString());
+        throw SystemError("Could not construct audit pipe");
 
     // Grab the fd for use with ioctl
     auto fd{::fileno(auditFile)};
 
     int mode{AUDITPIPE_PRESELECT_MODE_LOCAL};
     if(::ioctl(fd, AUDITPIPE_SET_PRESELECT_MODE, &mode) == -1)
-        throw std::runtime_error("Could not set preselect mode to local");
+        throw SystemError("Could not set preselect mode to local");
 
     int queueLength{0};
     if(::ioctl(fd, AUDITPIPE_GET_QLIMIT_MAX, &queueLength) == -1)
-        throw std::runtime_error("Could not get max queue length");
+        throw SystemError("Could not get max queue length");
 
     if(::ioctl(fd, AUDITPIPE_SET_QLIMIT, &queueLength) == -1)
-        throw std::runtime_error("Could not set  queue length");
+        throw SystemError("Could not set  queue length");
 
     if(::ioctl(fd, AUDITPIPE_SET_PRESELECT_FLAGS, &selectionFlags) == -1)
-        throw std::runtime_error("Could not set preselection flags");
+        throw SystemError("Could not set preselection flags");
 
     if(::ioctl(fd, AUDITPIPE_SET_PRESELECT_NAFLAGS, &selectionFlags) == -1)
-        throw std::runtime_error("Could not set preselection NA flags");
+        throw SystemError("Could not set preselection NA flags");
 
     if(::ioctl(fd, AUDITPIPE_FLUSH) == -1)
         std::cerr << "Could not flush pipe " << ErrorTracer{errno};

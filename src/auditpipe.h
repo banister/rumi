@@ -8,6 +8,9 @@
 class AuditPipe
 {
 public:
+    class Error;
+
+public:
     struct ProcessEvent
     {
         uint16_t type{};
