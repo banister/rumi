@@ -89,7 +89,57 @@ AuditPipe::AuditPipe()
     _auditFile = std::move(auditFile);
 }
 
-void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, ProcessEvent &lastFork)
+void AuditPipe::readLoop() const
+{
+    std::optional<ProcessEvent> pProcess;
+    std::optional<ProcessEvent> pLastFork;
+
+    while (true)
+    {
+        //read a single audit record
+        // note: buffer is allocated by function, so must be freed when done
+        uint8_t *recordBuffer{nullptr};
+        auto recordLength = au_read_rec(_auditFile, &recordBuffer);
+
+        if (recordLength == -1)
+            continue;
+
+        auto cleanup = scopeGuard([&recordBuffer] { if (recordBuffer) ::free(recordBuffer); });
+
+        auto recordBalance{recordLength};
+        auto processedLength{0};
+
+        pProcess.emplace();
+        pLastFork.emplace();
+
+        while(recordBalance != 0)
+        {
+            tokenstr_t token{};
+            auto ret = au_fetch_tok(&token, recordBuffer + processedLength, recordBalance);
+
+            if(ret == -1)
+                break;
+
+            processToken(token, *pProcess, *pLastFork);
+
+            if(pProcess->mode == ProcessEvent::Starting && !pProcess->arguments.empty())
+            {
+                _procStartedFunc(*pProcess);
+            }
+            else if(pProcess->mode == ProcessEvent::Exiting && !pProcess->arguments.empty())
+            {
+                _procExitedFunc(*pProcess);
+            }
+
+            // add length of current token
+            processedLength += token.len;
+            //subtract length of current token
+            recordBalance -= token.len;
+        }
+    }
+}
+
+void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, ProcessEvent &lastFork) const
 {
     auto shouldProcessRecord = [](uint16_t eventType)
     {

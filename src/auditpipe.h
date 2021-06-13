@@ -8,9 +8,6 @@
 class AuditPipe
 {
 public:
-    class Error;
-
-public:
     struct ProcessEvent
     {
         uint16_t type{};
@@ -25,61 +22,23 @@ public:
         Mode mode{Mode::Unknown};
     };
 
+private:
+    using ProcCallbackT = std::function<void(const ProcessEvent&)>;
+
 public:
     AuditPipe();
 
 public:
-    template <typename FuncA, typename FuncB>
-    void process(FuncA processStartFunc, FuncB processExitFunc)
-    {
-        std::optional<ProcessEvent> pProcess;
-        std::optional<ProcessEvent> pLastFork;
-
-        while(1)
-        {
-            //read a single audit record
-            // note: buffer is allocated by function, so must be freed when done
-            uint8_t *recordBuffer{nullptr};
-            auto recordLength = au_read_rec(_auditFile, &recordBuffer);
-
-            if(recordLength == -1)
-                continue;
-
-            auto cleanup = scopeGuard([&recordBuffer] { if(recordBuffer) ::free(recordBuffer); });
-
-            auto recordBalance{recordLength};
-            auto processedLength{0};
-
-            pProcess.emplace();
-            pLastFork.emplace();
-
-            while(recordBalance != 0)
-            {
-                tokenstr_t token{};
-                auto ret = au_fetch_tok(&token, recordBuffer + processedLength, recordBalance);
-
-                if(ret == -1)
-                    break;
-
-                processToken(token, *pProcess, *pLastFork);
-
-                if(pProcess->mode == ProcessEvent::Starting)
-                    processStartFunc(*pProcess);
-                else if(pProcess->mode == ProcessEvent::Exiting)
-                    processExitFunc(*pProcess);
-
-                // add length of current token
-                processedLength += token.len;
-                //subtract length of current token
-                recordBalance -= token.len;
-            }
-        }
-    }
+    void onProcessStarted(ProcCallbackT proc) { _procStartedFunc = std::move(proc); }
+    void onProcessExited(ProcCallbackT proc) { _procExitedFunc = std::move(proc); }
+    void readLoop() const;
 
 private:
-    void processToken(const tokenstr_t &token, ProcessEvent &process, ProcessEvent &lastFork);
+    void processToken(const tokenstr_t &token, ProcessEvent &process, ProcessEvent &lastFork) const;
 
 private:
     AutoCloseFile _auditFile;
+    ProcCallbackT _procStartedFunc=[](auto&){};
+    ProcCallbackT _procExitedFunc=[](auto&){};
 };
 
