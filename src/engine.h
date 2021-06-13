@@ -17,6 +17,8 @@ protected:
 protected:
     virtual void showTraffic(const std::vector<std::string> &appNamesm) = 0;
     virtual void showConnections(const std::vector<std::string> &appNames) = 0;
+    virtual void showExec(const std::vector<std::string> &appNames) = 0;
+
 protected:
     struct Config
     {

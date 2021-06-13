@@ -1,61 +1,82 @@
+#pragma once
 #include "util.h"
-#include "auditpipe.h"
 #include <bsm/libbsm.h>
+#include <bsm/audit.h>
 #include <security/audit/audit_ioctl.h>
-#include <sys/ioctl.h>
-
-class AutoCloseFile
-{
-public:
-    AutoCloseFile(const FILE *pFile) : _pFile{pFile} {}
-    ~AutoCloseFile()
-    {
-        if(_pFile)
-            ::fclose(_pFile);
-    }
-
-    AutoCloseFile(AutoCloseFile &&rhs) : AutoCloseFile{} { *this = std::move(rhs); }
-    AutoClose &operator=(AutoClose &&rhs) { std::swap(_pFile, rhs._pFile); }
-
-public:
-    operator FILE*() const { return _pFile; }
-
-private:
-    AutoCloseFile() : _pFile{nullptr} {}
-
-private:
-    FILE *_pFile{nullptr};
-};
+#include <bsm/audit_kevents.h>
 
 class AuditPipe
 {
 public:
-    class Process;
+    struct ProcessEvent
+    {
+        uint16_t type{};
+        std::string path;
+        pid_t pid{};
+        pid_t ppid{};
+        uid_t uid{};
+        std::vector<std::string> arguments;
+        uint32_t exitStatus{};
+
+        enum Mode {Unknown, Starting, Exiting};
+        Mode mode{Mode::Unknown};
+    };
 
 public:
-    AuditPipe(uint32_t flags);
-    ~AuditPipe()
+    AuditPipe();
 
 public:
-    template <typename FuncT>
-    void process(FuncT func);
-    void processToken(tokenstr_t token);
+    template <typename FuncA, typename FuncB>
+    void process(FuncA processStartFunc, FuncB processExitFunc)
+    {
+        std::optional<ProcessEvent> pProcess;
+        std::optional<ProcessEvent> pLastFork;
+
+        while(1)
+        {
+            //read a single audit record
+            // note: buffer is allocated by function, so must be freed when done
+            uint8_t *recordBuffer{nullptr};
+            auto recordLength = au_read_rec(_auditFile, &recordBuffer);
+
+            if(recordLength == -1)
+                continue;
+
+            auto cleanup = scopeGuard([&recordBuffer] { if(recordBuffer) ::free(recordBuffer); });
+
+            auto recordBalance{recordLength};
+            auto processedLength{0};
+
+            pProcess.emplace();
+            pLastFork.emplace();
+
+            while(recordBalance != 0)
+            {
+                tokenstr_t token{};
+                auto ret = au_fetch_tok(&token, recordBuffer + processedLength, recordBalance);
+
+                if(ret == -1)
+                    break;
+
+                processToken(token, *pProcess, *pLastFork);
+
+                if(pProcess->mode == ProcessEvent::Starting)
+                    processStartFunc(*pProcess);
+                else if(pProcess->mode == ProcessEvent::Exiting)
+                    processExitFunc(*pProcess);
+
+                // add length of current token
+                processedLength += token.len;
+                //subtract length of current token
+                recordBalance -= token.len;
+            }
+        }
+    }
+
+private:
+    void processToken(const tokenstr_t &token, ProcessEvent &process, ProcessEvent &lastFork);
 
 private:
     AutoCloseFile _auditFile;
-};
-
-struct AuditPipe::ProcessEvent
-{
-    uint16_t type{};
-    std::string path;
-    pid_t pid{};
-    pid_t ppid{};
-    uid_t uid{};
-    std::vector<std::string> arguments;
-    uint32_t exitStatus{};
-
-    enum Mode {Unknown, Starting, Exiting};
-    Mode _mode{Mode::Unknown};
 };
 

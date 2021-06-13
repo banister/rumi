@@ -45,3 +45,47 @@ public:
         return s;
     }
 };
+
+class AutoCloseFile
+{
+public:
+    AutoCloseFile() : _pFile{nullptr} {};
+    AutoCloseFile(FILE *pFile) : _pFile{pFile} {}
+    ~AutoCloseFile() { close();  }
+
+    AutoCloseFile(AutoCloseFile &&rhs) : _pFile{std::exchange(rhs._pFile, nullptr)} {}
+    AutoCloseFile &operator=(AutoCloseFile &&rhs) { close(); _pFile = std::exchange(rhs._pFile, nullptr); return *this; }
+
+public:
+    void close()
+    {
+        if(_pFile)
+        {
+            ::fclose(_pFile);
+            _pFile = nullptr;
+        }
+    }
+
+public:
+    operator FILE*() const { return _pFile; }
+
+private:
+    FILE *_pFile{nullptr};
+};
+
+template <typename FuncT>
+class ScopeGuard
+{
+public:
+    ScopeGuard(FuncT func) :_func{func} {}
+    ~ScopeGuard() {_func();}
+
+private:
+    FuncT _func;
+};
+
+template <typename FuncT>
+ScopeGuard<FuncT> scopeGuard(FuncT func)
+{
+    return ScopeGuard<FuncT>(func);
+}

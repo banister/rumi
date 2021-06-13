@@ -1,9 +1,8 @@
-#include "util.h"
 #include "auditpipe.h"
-#include <bsm/libbsm.h>
-#include <security/audit/audit_ioctl.h>
 #include <sys/ioctl.h>
 #include <libproc.h>
+#include <sys/types.h>
+#include <sys/sysctl.h>
 
 namespace
 {
@@ -31,7 +30,7 @@ namespace
         // 0x80000000 | // Miscellaneous (ot)
         // 0xffffffff ; // All flags set (all)
 
-    pid_t getPpid(pid_t pid)
+    pid_t getppid(pid_t pid)
     {
         pid_t ppid{-1};
         kinfo_proc proc{};
@@ -43,7 +42,7 @@ namespace
         auto ret = sysctl(mib, mibLength, &proc, &procBufferSize, nullptr, 0);
 
         //check if got ppid
-        if((return == 0) && (procBufferSize != 0))
+        if(ret == 0 && procBufferSize != 0)
             ppid = proc.kp_eproc.e_ppid;
 
         return ppid;
@@ -58,11 +57,11 @@ namespace
     }
 }
 
-AuditPipe::AuditPipe(uint32_t flags)
+AuditPipe::AuditPipe()
 {
-    auditFile = AutoCloseFile{::fopen(auditPipeLocation, "r")};
+    auto auditFile = AutoCloseFile{::fopen(auditPipeLocation, "r")};
     if(auditFile == nullptr)
-        throw std::runtime_error("Could not construct audit pipe");
+        throw std::runtime_error(std::string("Could not construct audit pipe ") + ErrorTracer{errno}.toString());
 
     // Grab the fd for use with ioctl
     auto fd{::fileno(auditFile)};
@@ -90,56 +89,9 @@ AuditPipe::AuditPipe(uint32_t flags)
     _auditFile = std::move(auditFile);
 }
 
-template <typename FuncT>
-void AuditPipe::process(FuncT processStartFunc, FuncT processExitFunc)
-{
-
-    std::optional<ProcessEvent> pProcess;
-    std::optional<ProcessEvent> pLastFork;
-
-    while(1)
-    {
-        //read a single audit record
-        // note: buffer is allocated by function, so must be freed when done
-        uint8_t* recordBuffer{nullptr};
-        auto recordLength = au_read_rec(_auditFile, &recordBuffer);
-
-        auto scopeGuard([&recordBuffer] { ::free(recordBuffer); });
-
-        if(recordLength == -1)
-            continue;
-
-        auto recordBalance{recordLength};
-        auto processedLength{0};
-
-        pProcess.emplace();
-        pLastFork.emplace();
-
-        while(recordBalance != 0)
-        {
-            tokenstr_t token{};
-            auto ret = au_fetch_tok(&token, recordBuffer + processedLength, recordBalance);
-            if(ret == -1)
-                break;
-
-            processToken(token, *pProcess, *pLastFork)
-
-            if(pProcess.mode == ProcessEvent::Starting)
-                processStartFunc(*pProcess);
-            else if(pProcess.mode == ProcessEvent::Exiting)
-                processExitFunc(*pProcess);
-
-            //add length of current token
-            processedLength += tokenStruct.len;
-            //subtract lenght of current token
-            recordBalance -= tokenStruct.len;
-        }
-    }
-}
-
 void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, ProcessEvent &lastFork)
 {
-    auto shouldProcessRecord = [](uint16_t eventype)
+    auto shouldProcessRecord = [](uint16_t eventType)
     {
         if(eventType == AUE_EXEC || eventType == AUE_EXIT || eventType == AUE_FORK || eventType == AUE_EXECVE || eventType == AUE_POSIX_SPAWN)
             return true;
@@ -191,7 +143,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, Pro
                 //set pid
                 process.pid = token.tt.subj32.pid;
                 //manually get parent
-                process.ppid = getPpid(process.pid);
+                process.ppid = getppid(process.pid);
             }
             //pid already set (via AUT_ARG32)
             // this then, is the ppid
@@ -215,7 +167,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, Pro
             //save pid
             process.pid = token.tt.subj32.pid;
             //manually get parent
-            process.ppid = getPpid(process.pid);
+            process.ppid = getppid(process.pid);
         }
 
         //get effective user id
@@ -252,7 +204,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, Pro
         if(AUE_FORK == process.type)
         {
             //set path
-            pProccess->path.resize(PROC_PIDPATHINFO_MAXSIZE);
+            process.path.resize(PROC_PIDPATHINFO_MAXSIZE);
             proc_pidpath(process.pid, process.path.data(), process.path.size());
         }
 
@@ -264,7 +216,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, Pro
     case AUT_EXEC_ARGS:
     {
         //save args
-        auto argCountt{token.tt.execarg.count};
+        auto argCount{token.tt.execarg.count};
         process.arguments.reserve(argCount);
 
         for(size_t i = 0; i < argCount; ++i)
@@ -294,11 +246,11 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, Pro
     // end/save, etc
     case AUT_TRAILER:
     {
-        if(pProcess && shouldProcessRecord(process.type))
+        if(shouldProcessRecord(process.type))
         {
             //handle process exits
             if(AUE_EXIT == process.type)
-                process.mode = Process::Exiting;
+                process.mode = ProcessEvent::Exiting;
 
             //handle process starts
             else
@@ -323,7 +275,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &process, Pro
                     process.ppid = lastFork.ppid;
 
                 //handle new process
-                process.mode = Process::Starting;
+                process.mode = ProcessEvent::Starting;
             }
         }
         break;

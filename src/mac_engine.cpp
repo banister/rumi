@@ -2,6 +2,7 @@
 #include "mac_engine.h"
 #include "port_finder.h"
 #include "bpf_device.h"
+#include "auditpipe.h"
 
 namespace fs = std::filesystem;
 
@@ -35,7 +36,6 @@ void MacEngine::showConnections(const std::vector<std::string> &appNames)
         showConnectionsForIPVersion(_config.ipVersion);
 }
 
-
 void MacEngine::showTraffic(const std::vector<std::string> &appNames)
 {
     auto bpfDevice = BpfDevice::create("en0");
@@ -68,6 +68,20 @@ void MacEngine::showTraffic(const std::vector<std::string> &appNames)
             }
         });
     }
+}
+
+void MacEngine::showExec(const std::vector<std::string> &appNames)
+{
+    AuditPipe auditPipe;
+
+    auto onProcessStart = [](const auto &event)
+    {
+        std::cout << event.path << " started:" << std::endl;
+    };
+
+    auto onProcessEnd = [](auto&){};
+
+    auditPipe.process(onProcessStart, onProcessEnd);
 }
 
 

@@ -13,6 +13,7 @@ void Engine::start(int argc, char **argv)
         ("i,interface", "The interfaces to listen on.", cxxopts::value<std::vector<std::string>>())
         ("a,analyze", "Analyze traffic.",cxxopts::value<bool>()->default_value("true"))
         ("s,sockets", "Show socket information.")
+        ("e,exec", "Show Process execs.")
         ("v,verbose", "Verbose output.",cxxopts::value<bool>()->default_value("false"))
         ("4,inet", "IPv4 only.",cxxopts::value<bool>()->default_value("false"))
         ("6,inet6", "IPv6 only.",cxxopts::value<bool>()->default_value("false"));
@@ -49,11 +50,19 @@ void Engine::start(int argc, char **argv)
         return;
     }
 
+    if(result["exec"].as<bool>())
+    {
+        showExec(appNames);
+        return;
+    }
+
     if(result["analyze"].as<bool>())
     {
         showTraffic(appNames);
         return;
     }
+
+
 }
 
 void Engine::displayPacket(const PacketView &packet, const std::string &appPath)

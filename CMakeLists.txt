@@ -11,6 +11,6 @@ find_package(fmt CONFIG REQUIRED)
 
 add_executable(columbo  ${SRC_FILES})
 
-target_link_libraries(columbo PRIVATE fmt::fmt)
+target_link_libraries(columbo PRIVATE fmt::fmt bsm)
 
 target_include_directories(columbo PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
