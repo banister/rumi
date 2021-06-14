@@ -50,25 +50,18 @@ void Engine::start(int argc, char **argv)
     if(result.count("help"))
     {
         std::cout << options.help();
-        return;
     }
-
-    if(result.count("sockets"))
+    else if(result.count("sockets"))
     {
         showConnections(appNames);
-        return;
     }
-
-    if(result["exec"].as<bool>())
+    else if(result["exec"].as<bool>())
     {
         showExec(appNames);
-        return;
     }
-
-    if(result["analyze"].as<bool>())
+    else if(result["analyze"].as<bool>())
     {
         showTraffic(appNames);
-        return;
     }
 }
 

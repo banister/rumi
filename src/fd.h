@@ -1,5 +1,7 @@
 #pragma once
 #include <algorithm>
+#include <unistd.h>
+
 class Fd
 {
 public:
@@ -8,14 +10,15 @@ public:
 public:
     Fd() : _fd{Invalid} {}
     Fd(int fd) :_fd{fd} {}
+    ~Fd() {close();}
 
-    Fd(Fd &&other) : Fd{} {*this = std::move(other);}
-    Fd& operator=(Fd &&other) { std::swap(_fd, other._fd); return *this; }
+    Fd(Fd &&other) : _fd{std::exchange(other._fd, Invalid)} {}
+    Fd& operator=(Fd &&other);
 
 public:
+    void close();
     explicit operator bool() {return _fd != Invalid;}
     int get() const {return _fd;}
-    ~Fd();
 
 private:
     int _fd;
