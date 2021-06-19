@@ -13,6 +13,9 @@ namespace
         return static_cast<std::string>(fs::path(path).filename());
     }
 
+    // Get the list of all process pids that we care about based on user config.
+    // This includes the specific numberic pids given on the CLI (via -p <pid>)
+    // and also includes the process search strings (-p <search string>) converted to pids
     std::set<pid_t> allProcessPids(const Engine::Config& config)
     {
         auto allPids = config.processPids();
@@ -39,7 +42,7 @@ void MacEngine::showConnections(const Config &config)
     {
         std::cout << ipVersionToString(ipVersion) << "\n==\n";
         // Must run cmb as sudo to show all sockets, otherwise some are missed
-        const auto connections = PortFinder::connections(config.processNames(), ipVersion);
+        const auto connections = PortFinder::connections(allProcessPids(config), ipVersion);
         for(const auto &conn : connections)
             std::cout << (conn.*fptr)() << "\n";
     };
@@ -64,23 +67,26 @@ void MacEngine::showTraffic(const Config &config)
             const std::string fullPath{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
             const std::string path = config.verbose() ? fullPath : basename(fullPath);
 
-            const auto pidsToMatch = allProcessPids(config);
-
             if(config.ipVersion() != IPVersion::Both)
                 // Skip packets with unwanted ipVersion
                 if(packet.ipVersion() != config.ipVersion())
                     return;
 
+             // We only care about TCP and UDP
              if(packet.hasTransport())
              {
-                if(pidsToMatch.empty())
-                    displayPacket(packet, path);
-                // If any app names are provided, only
-                // display a packet if it matches one of those names
+                 // If we want to observe specific processes (-p)
+                 // then limit to showing only packets from those processes
+                if(config.processesProvided())
+                {
+                    if(matchesPacket(packet, allProcessPids(config)))
+                        displayPacket(packet, path);
+                }
+
+                // Otherwise show everything
                 else
                 {
-                    if(matchesPacket(packet, pidsToMatch))
-                        displayPacket(packet, path);
+                    displayPacket(packet, path);
                 }
             }
         });
@@ -94,10 +100,7 @@ void MacEngine::showExec(const Config &config)
     // Execute this callback whenever a process starts up
     auditPipe.onProcessStarted([&, this](const auto &event)
     {
-        // Need to re-evaluate each time a process starts
-        const auto pidsToMatch = allProcessPids(config);
-
-        if(config.processesProvided() && std::find(pidsToMatch.begin(), pidsToMatch.end(), event.ppid) == pidsToMatch.end())
+        if(config.processesProvided() && !allProcessPids(config).contains(event.ppid))
             return;
 
         std::cout << "pid: " << event.pid << " ppid: " << event.ppid << " - ";
