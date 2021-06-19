@@ -31,7 +31,7 @@ public:
 public:
     void onProcessStarted(ProcCallbackT proc) { _procStartedFunc = std::move(proc); }
     void onProcessExited(ProcCallbackT proc) { _procExitedFunc = std::move(proc); }
-    void readLoop() const;
+    void receive() const;
 
 private:
     void processToken(const tokenstr_t &token, ProcessEvent &process, ProcessEvent &lastFork) const;

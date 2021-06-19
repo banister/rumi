@@ -7,10 +7,7 @@
 class MacEngine : public Engine
 {
 protected:
-    virtual void showTraffic(const std::vector<std::string> &appNames) override;
-    virtual void showConnections(const std::vector<std::string> &appNames) override;
-    virtual void showExec(const std::vector<std::string> &appNames) override;
-
-private:
-    bool matchesPacket(const PacketView &packet, const std::vector<std::string> &appNames);
+    virtual void showTraffic(const Config &config) override;
+    virtual void showConnections(const Config &config) override;
+    virtual void showExec(const Config &config) override;
 };

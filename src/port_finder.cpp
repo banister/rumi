@@ -1,4 +1,3 @@
-#include <fmt/core.h>
 #include <filesystem>
 #include "common.h"
 #include "port_finder.h"
@@ -103,7 +102,7 @@ void connectionsForPid(pid_t pid, IPVersion ipVersion, Func_T func)
 }
 }
 
-bool PortFinder::matchesPath(const std::vector<std::string> &paths, pid_t pid)
+bool PortFinder::matchesPath(const std::set<std::string> &paths, pid_t pid)
 {
     std::string appPath = pidToPath(pid);
 
@@ -133,7 +132,7 @@ pid_t PortFinder::portToPid(std::uint16_t port, IPVersion ipVersion)
     });
 }
 
-std::set<pid_t> PortFinder::pids(const std::vector<std::string> &paths)
+std::set<pid_t> PortFinder::pids(const std::set<std::string>& paths)
 {
     return pidsFor([&](const auto &pid) { return matchesPath(paths, pid); });
 }
@@ -152,12 +151,12 @@ PortSet PortFinder::ports(const std::set<pid_t> &pids, IPVersion ipVersion)
     return ports;
 }
 
-PortSet PortFinder::ports(const std::vector<std::string> &paths, IPVersion ipVersion)
+PortSet PortFinder::ports(const std::set<std::string>& paths, IPVersion ipVersion)
 {
     return ports(pids(paths), ipVersion);
 }
 
-std::set<PortFinder::AddressAndPort> PortFinder::addresses4(const std::vector<std::string> &paths)
+std::set<PortFinder::AddressAndPort> PortFinder::addresses4(const std::set<std::string> &paths)
 {
     std::set<AddressAndPort> addresses;
     for(const auto &pid : pids(paths))
@@ -168,7 +167,7 @@ std::set<PortFinder::AddressAndPort> PortFinder::addresses4(const std::vector<st
     return addresses;
 }
 
-std::vector<PortFinder::Connection> PortFinder::connections(const std::vector<std::string> &paths, IPVersion ipVersion)
+std::vector<PortFinder::Connection> PortFinder::connections(const std::set<std::string> &paths, IPVersion ipVersion)
 {
     return connections(pids(paths), ipVersion);
 }

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <sys/errno.h>
 #include <string.h>
+#include <span>
 #include <arpa/inet.h>
 
 #if defined(__linux__)

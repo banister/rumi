@@ -1,26 +1,6 @@
 #include "engine.h"
 #include "packet.h"
 #include <fmt/core.h>
-#include "vendor/cxxopts.h"
-
-namespace
-{
-    void decideIpVersion(IPVersion &ipVersion, const cxxopts::ParseResult &result)
-    {
-        // If both specified, then use both
-        if(result["inet"].as<bool>() && result["inet6"].as<bool>())
-            ipVersion = IPVersion::Both;
-        // Otherwise just ipv4 (if specified)
-        else if(result["inet"].as<bool>())
-            ipVersion = IPVersion::IPv4;
-        // Or just ipv6 (if specified)
-        else if(result["inet6"].as<bool>())
-            ipVersion = IPVersion::IPv6;
-        else
-            // Default to both ipv4 and ipv6
-            ipVersion = IPVersion::Both;
-    }
-}
 
 void Engine::start(int argc, char **argv)
 {
@@ -29,6 +9,7 @@ void Engine::start(int argc, char **argv)
     options.allow_unrecognised_options();
     options.add_options()
         ("h,help", "Display this help message.")
+        ("p,process", "The processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
         ("i,interface", "The interfaces to listen on.", cxxopts::value<std::vector<std::string>>())
         ("a,analyze", "Analyze traffic.",cxxopts::value<bool>()->default_value("true"))
         ("s,sockets", "Show socket information.")
@@ -39,13 +20,8 @@ void Engine::start(int argc, char **argv)
 
     auto result = options.parse(argc, argv);
 
-    const auto &unmatched = result.unmatched();
-    const std::vector<std::string> appNames{unmatched.begin(), unmatched.end()};
-
-    // Setup config options
-    _config.verbose = result["verbose"].as<bool>();
-
-    decideIpVersion(_config.ipVersion, result);
+    // Initialize our config from the CLI options
+    Config config{result};
 
     if(result.count("help"))
     {
@@ -53,15 +29,15 @@ void Engine::start(int argc, char **argv)
     }
     else if(result.count("sockets"))
     {
-        showConnections(appNames);
+        showConnections(config);
     }
     else if(result["exec"].as<bool>())
     {
-        showExec(appNames);
+        showExec(config);
     }
     else if(result["analyze"].as<bool>())
     {
-        showTraffic(appNames);
+        showTraffic(config);
     }
 }
 
@@ -76,4 +52,46 @@ void Engine::displayPacket(const PacketView &packet, const std::string &appPath)
                packet.destAddress(), packet.destPort());
 
     ::fflush(stdout);
+}
+
+Engine::Config::Config(const cxxopts::ParseResult &result)
+: _verbose{result["verbose"].as<bool>()}
+{
+    extractProcesses(result);
+    decideIpVersion(result);
+}
+
+void Engine::Config::extractProcesses(const cxxopts::ParseResult &result)
+{
+    const static std::regex pidRegex{R"([0-9]+)", std::regex::ECMAScript};
+
+    if(result.count("process"))
+    {
+        // Contains both pids and names
+        const auto &processes = result["process"].as<std::vector<std::string>>();
+        for(const auto &process : processes)
+        {
+            std::smatch match;
+            if (std::regex_match(process, match, pidRegex))
+                _processPids.insert(std::stoi(process));
+            else
+                _processNames.insert(process);
+        }
+    }
+}
+
+void Engine::Config::decideIpVersion(const cxxopts::ParseResult &result)
+{
+    // If both specified, then use both
+    if(result["inet"].as<bool>() && result["inet6"].as<bool>())
+        _ipVersion = IPVersion::Both;
+    // Otherwise just ipv4 (if specified)
+    else if(result["inet"].as<bool>())
+        _ipVersion = IPVersion::IPv4;
+    // Or just ipv6 (if specified)
+    else if(result["inet6"].as<bool>())
+        _ipVersion = IPVersion::IPv6;
+    else
+        // Default to both ipv4 and ipv6
+        _ipVersion = IPVersion::Both;
 }

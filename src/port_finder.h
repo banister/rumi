@@ -92,16 +92,16 @@ private:
     // The maximum number of PIDs we support
 enum { maxPids = 16384 };
 
-std::set<pid_t> pids(const std::vector<std::string> &paths);
+std::set<pid_t> pids(const std::set<std::string> &paths);
 PortSet ports(const std::set<pid_t> &pids, IPVersion ipVersion);
-PortSet ports(const std::vector<std::string> &paths, IPVersion ipVersion);
-std::set<AddressAndPort> addresses4(const std::vector<std::string> &paths);
+PortSet ports(const std::set<std::string> &paths, IPVersion ipVersion);
+std::set<AddressAndPort> addresses4(const std::set<std::string> &paths);
 pid_t portToPid(std::uint16_t port, IPVersion ipVersion=IPv4);
 std::string pidToPath(pid_t);
 std::string portToPath(std::uint16_t port, IPVersion ipVersion);
 std::vector<Connection> connections(const std::set<pid_t> &pids, IPVersion ipVersion);
-std::vector<Connection> connections(const std::vector<std::string> &paths, IPVersion ipVersion);
-bool matchesPath(const std::vector<std::string> &paths, pid_t pid);
+std::vector<Connection> connections(const std::set<std::string> &paths, IPVersion ipVersion);
+bool matchesPath(const std::set<std::string> &paths, pid_t pid);
 
 template <typename Func_T>
 pid_t pidFor(Func_T func)

@@ -70,7 +70,7 @@ AuditPipe::AuditPipe()
     _auditFile = std::move(auditFile);
 }
 
-void AuditPipe::readLoop() const
+void AuditPipe::receive() const
 {
     std::optional<ProcessEvent> pProcessEvent;
     std::optional<ProcessEvent> pLastForkEvent;
