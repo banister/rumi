@@ -15,6 +15,41 @@ BpfDevice::BpfDevice(const std::string &interfaceName)
     _bufferLength = config.bufferLength;
 }
 
+void BpfDevice::receive() const
+{
+    while(true)
+    {
+        std::vector<unsigned char> buf(_bufferLength);
+        unsigned char *ptr = reinterpret_cast<unsigned char *>(buf.data());
+        ssize_t length = read(_fd.get(), buf.data(), _bufferLength);
+
+        while(ptr < buf.data() + length)
+        {
+            bpf_hdr *bh = reinterpret_cast<bpf_hdr *>(ptr);
+            ether_header *eh = reinterpret_cast<ether_header *>(ptr + bh->bh_hdrlen);
+
+            std::span<unsigned char> data(ptr + bh->bh_hdrlen, ptr + length);
+            ptr += BPF_WORDALIGN(bh->bh_hdrlen + bh->bh_caplen);
+            if(ntohs(eh->ether_type) == ETHERTYPE_IP)
+            {
+                auto packet4 = Packet4::createFromData(data, sizeof(ether_header));
+                if(!packet4)
+                    continue;
+
+                _packetReceivedFunc(PacketView{std::move(*packet4)});
+            }
+            else if(ntohs(eh->ether_type) == ETHERTYPE_IPV6)
+            {
+                auto packet6 = Packet6::createFromData(data, sizeof(ether_header));
+                if(!packet6)
+                    continue;
+
+                _packetReceivedFunc(PacketView{std::move(*packet6)});
+            }
+        }
+    }
+}
+
 BpfDevice::InterfaceConfig BpfDevice::findAndConfigureInterface(const std::string &interfaceName) const
 {
     for(size_t interfaceNumber = 0; interfaceNumber < MaxBpfNumber; ++interfaceNumber)

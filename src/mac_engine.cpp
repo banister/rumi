@@ -14,7 +14,7 @@ namespace
     }
 
     // Get the list of all process pids that we care about based on user config.
-    // This includes the specific numberic pids given on the CLI (via -p <pid>)
+    // This includes the specific numeric pids given on the CLI (via -p <pid>)
     // and also includes the process search strings (-p <search string>) converted to pids
     std::set<pid_t> allProcessPids(const Engine::Config& config)
     {
@@ -60,37 +60,36 @@ void MacEngine::showTraffic(const Config &config)
 {
     BpfDevice bpfDevice{"en0"};
 
-    // FIXME: refactor to follow pattern in AuditPipe
-    while(true)
-    {
-        bpfDevice.onPacketReceived([&, this](const PacketView &packet) {
-            const std::string fullPath{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
-            const std::string path = config.verbose() ? fullPath : basename(fullPath);
+    bpfDevice.onPacketReceived([&, this](const PacketView &packet) {
+        const std::string fullPath{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
+        const std::string path = config.verbose() ? fullPath : basename(fullPath);
 
-            if(config.ipVersion() != IPVersion::Both)
-                // Skip packets with unwanted ipVersion
-                if(packet.ipVersion() != config.ipVersion())
-                    return;
+        if(config.ipVersion() != IPVersion::Both)
+        // Skip packets with unwanted ipVersion
+        if(packet.ipVersion() != config.ipVersion())
+            return;
 
-             // We only care about TCP and UDP
-             if(packet.hasTransport())
-             {
-                 // If we want to observe specific processes (-p)
-                 // then limit to showing only packets from those processes
-                if(config.processesProvided())
-                {
-                    if(matchesPacket(packet, allProcessPids(config)))
-                        displayPacket(packet, path);
-                }
-
-                // Otherwise show everything
-                else
-                {
+        // We only care about TCP and UDP
+        if(packet.hasTransport())
+        {
+            // If we want to observe specific processes (-p)
+            // then limit to showing only packets from those processes
+            if(config.processesProvided())
+            {
+                if(matchesPacket(packet, allProcessPids(config)))
                     displayPacket(packet, path);
-                }
             }
-        });
-    }
+
+            // Otherwise show everything
+            else
+            {
+                displayPacket(packet, path);
+            }
+        }
+    });
+
+    // Infinite loop
+    bpfDevice.receive();
 }
 
 void MacEngine::showExec(const Config &config)
@@ -100,6 +99,9 @@ void MacEngine::showExec(const Config &config)
     // Execute this callback whenever a process starts up
     auditPipe.onProcessStarted([&, this](const auto &event)
     {
+        // Don't show any processes if the user has said they're only
+        // interested in specific processes AND we currently have no processes
+        // that match the ones they care about
         if(config.processesProvided() && !allProcessPids(config).contains(event.ppid))
             return;
 
