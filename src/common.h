@@ -23,13 +23,13 @@
 #include <errno.h>
 
 #if defined(__linux__)
-#define CMB_LINUX
+#define RUMI_LINUX
 #elif defined(__APPLE__)
-#define CMB_MACOS
-#define CMB_MAC
+#define RUMI_MACOS
+#define RUMI_MAC
 #else
-#define CMB_WIN
-#define CMB_WINDOWS
+#define RUMI_WIN
+#define RUMI_WINDOWS
 #endif
 
 // Types

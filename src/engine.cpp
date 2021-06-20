@@ -4,7 +4,7 @@
 
 void Engine::start(int argc, char **argv)
 {
-    cxxopts::Options options{"Columbo", "Runtime ruminations"};
+    cxxopts::Options options{"rumi", "Runtime ruminations"};
 
     options.allow_unrecognised_options();
     options.add_options()
@@ -14,7 +14,7 @@ void Engine::start(int argc, char **argv)
         ("i,interface", "The interfaces to listen on.", cxxopts::value<std::vector<std::string>>())
         ("a,analyze", "Analyze traffic.",cxxopts::value<bool>()->default_value("true"))
         ("s,sockets", "Show socket information.")
-        ("e,exec", "Show Process execs.")
+        ("e,exec", "Show process execs.")
         ("v,verbose", "Verbose output.",cxxopts::value<bool>()->default_value("false"))
         ("4,inet", "IPv4 only.",cxxopts::value<bool>()->default_value("false"))
         ("6,inet6", "IPv6 only.",cxxopts::value<bool>()->default_value("false"));

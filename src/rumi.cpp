@@ -1,6 +1,6 @@
 #include "common.h"
 #include "engine.h"
-#if defined(CMB_MACOS)
+#if defined(RUMI_MACOS)
 #include "mac_engine.h"
 #endif
 
@@ -8,7 +8,7 @@ int main(int argc, char** argv)
 {
     std::unique_ptr<Engine> engine;
 
-#if defined(CMB_MACOS)
+#if defined(RUMI_MACOS)
     engine = std::make_unique<MacEngine>();
 #endif
 
