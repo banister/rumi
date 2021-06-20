@@ -33,7 +33,8 @@ namespace
     {
         std::string path;
         path.resize(PROC_PIDPATHINFO_MAXSIZE);
-        proc_pidpath(pid, path.data(), path.size());
+        auto realSize = proc_pidpath(pid, path.data(), path.size());
+        path.resize(realSize);
         return path;
     }
 }
