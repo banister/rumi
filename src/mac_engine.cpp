@@ -18,9 +18,19 @@ namespace
     // and also includes the process search strings (-p <search string>) converted to pids
     std::set<pid_t> allProcessPids(const Engine::Config& config)
     {
-        auto allPids = config.processPids();
+        auto allPids = config.processes().pids();
         // Convert process search strings to pids
-        auto pids = PortFinder::pids(config.processNames());
+        auto pids = PortFinder::pids(config.processes().names());
+        allPids.merge(pids);
+
+        return allPids;
+    }
+
+    std::set<pid_t> allParentProcessPids(const Engine::Config& config)
+    {
+        auto allPids = config.parentProcesses().pids();
+        // Convert process search strings to pids
+        auto pids = PortFinder::pids(config.parentProcesses().names());
         allPids.merge(pids);
 
         return allPids;
@@ -102,8 +112,14 @@ void MacEngine::showExec(const Config &config)
         // Don't show any processes if the user has said they're only
         // interested in specific processes AND we currently have no processes
         // that match the ones they care about
-        if(config.processesProvided() && !allProcessPids(config).contains(event.ppid))
+        if(config.processesProvided() && !allProcessPids(config).contains(event.pid) && !allParentProcessPids(config).contains(event.ppid))
             return;
+
+        // FIXME:
+        // For process names compare against the actual event.path - don't convert to pids first
+        // (as we do currentlyl) - as the current approach doesn't see so relilable, may be a race condition
+        // which means we don't always get all matching processes. cf rumi -p route which
+        // doesn't appear to match anything
 
         std::cout << "pid: " << event.pid << " ppid: " << event.ppid << " - ";
         std::cout << (config.verbose() ? event.path : basename(event.path)) << " ";

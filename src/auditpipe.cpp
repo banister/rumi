@@ -234,8 +234,8 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &processEvent
             {
                 processEvent.path = pidToPath(processEvent.pid);
 
-                if(processEvent.path.empty() || (processEvent.path.starts_with("/dev/") && !processEvent.arguments.empty()))
-                    processEvent.path = processEvent.arguments[0];
+                if(((processEvent.path.empty()  || processEvent.path.starts_with("/dev/")) && !processEvent.arguments.empty()))
+                    processEvent.path = processEvent.arguments.at(0);
 
                 if(AUE_FORK == processEvent.type)
                     lastForkEvent = processEvent;

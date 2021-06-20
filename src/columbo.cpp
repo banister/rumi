@@ -28,7 +28,9 @@ int main(int argc, char** argv)
     catch(const std::exception &ex)
     {
         std::cerr << "Error: " << ex.what() << std::endl;
-        return 1;
+
+        // Re-throw that we get the name of the exception (i.e type std::out_of_range: vector)
+        throw;
     }
 
     return 0;

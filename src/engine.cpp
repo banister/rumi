@@ -10,6 +10,7 @@ void Engine::start(int argc, char **argv)
     options.add_options()
         ("h,help", "Display this help message.")
         ("p,process", "The processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
+        ("P,parent", "The parent processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
         ("i,interface", "The interfaces to listen on.", cxxopts::value<std::vector<std::string>>())
         ("a,analyze", "Analyze traffic.",cxxopts::value<bool>()->default_value("true"))
         ("s,sockets", "Show socket information.")
@@ -57,25 +58,26 @@ void Engine::displayPacket(const PacketView &packet, const std::string &appPath)
 Engine::Config::Config(const cxxopts::ParseResult &result)
 : _verbose{result["verbose"].as<bool>()}
 {
-    extractProcesses(result);
+    extractProcesses("process", result, _processes);
+    extractProcesses("parent", result, _parentProcesses);
     decideIpVersion(result);
 }
 
-void Engine::Config::extractProcesses(const cxxopts::ParseResult &result)
+void Engine::Config::extractProcesses(const std::string &optionName, const cxxopts::ParseResult &result, SelectedProcesses &selectedProcesses)
 {
     const static std::regex pidRegex{R"([0-9]+)", std::regex::ECMAScript};
 
-    if(result.count("process"))
+    if(result.count(optionName))
     {
         // Contains both pids and names
-        const auto &processes = result["process"].as<std::vector<std::string>>();
+        const auto &processes = result[optionName].as<std::vector<std::string>>();
         for(const auto &process : processes)
         {
             std::smatch match;
             if (std::regex_match(process, match, pidRegex))
-                _processPids.insert(std::stoi(process));
+                selectedProcesses._pids.insert(std::stoi(process));
             else
-                _processNames.insert(process);
+                selectedProcesses._names.insert(process);
         }
     }
 }
