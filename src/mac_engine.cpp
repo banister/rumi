@@ -19,9 +19,8 @@ namespace
     std::set<pid_t> allProcessPids(const Engine::Config& config)
     {
         auto allPids = config.processPids();
-        // Convert process names to pids
+        // Convert process search strings to pids
         auto pids = PortFinder::pids(config.processNames());
-
         allPids.merge(pids);
 
         return allPids;
@@ -38,7 +37,7 @@ void MacEngine::showConnections(const Config &config)
     std::string(PortFinder::Connection::*fptr)() const = nullptr;
     fptr = config.verbose() ? &PortFinder::Connection::toVerboseString : &PortFinder::Connection::toString;
 
-    auto showConnectionsForIPVersion = [&, this](IPVersion ipVersion)
+    auto showConnectionsForIPVersion = [&](IPVersion ipVersion)
     {
         std::cout << ipVersionToString(ipVersion) << "\n==\n";
         // Must run cmb as sudo to show all sockets, otherwise some are missed
@@ -60,10 +59,8 @@ void MacEngine::showTraffic(const Config &config)
 {
     BpfDevice bpfDevice{"en0"};
 
-    bpfDevice.onPacketReceived([&, this](const PacketView &packet) {
-        const std::string fullPath{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
-        const std::string path = config.verbose() ? fullPath : basename(fullPath);
-
+    bpfDevice.onPacketReceived([&](const PacketView &packet)
+    {
         if(config.ipVersion() != IPVersion::Both)
         // Skip packets with unwanted ipVersion
         if(packet.ipVersion() != config.ipVersion())
@@ -72,6 +69,9 @@ void MacEngine::showTraffic(const Config &config)
         // We only care about TCP and UDP
         if(packet.hasTransport())
         {
+            const std::string fullPath{PortFinder::portToPath(packet.sourcePort(), packet.ipVersion())};
+            const std::string path = config.verbose() ? fullPath : basename(fullPath);
+
             // If we want to observe specific processes (-p)
             // then limit to showing only packets from those processes
             if(config.processesProvided())
@@ -97,7 +97,7 @@ void MacEngine::showExec(const Config &config)
     AuditPipe auditPipe;
 
     // Execute this callback whenever a process starts up
-    auditPipe.onProcessStarted([&, this](const auto &event)
+    auditPipe.onProcessStarted([&](const auto &event)
     {
         // Don't show any processes if the user has said they're only
         // interested in specific processes AND we currently have no processes

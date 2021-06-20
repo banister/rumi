@@ -94,6 +94,7 @@ class SystemError : public std::exception
 {
 public:
     SystemError(const std::string &msg)
+    : _code{errno}
     {
         if(errno)
             _msg = fmt::format("{} - {}", msg, ErrorTracer{}.toString());
@@ -107,6 +108,9 @@ public:
         return _msg.c_str();
     }
 
+    int code() const { return _code; }
+
 private:
     std::string _msg;
+    int _code{};
 };

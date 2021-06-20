@@ -20,6 +20,7 @@
 #include <string.h>
 #include <span>
 #include <arpa/inet.h>
+#include <errno.h>
 
 #if defined(__linux__)
 #define CMB_LINUX
