@@ -26,7 +26,8 @@ namespace
         return allPids;
     }
 
-    bool processNameMatches(const std::set<std::string> &searchStrings, const std::string &processName)
+    // Do one of the search strings match the process name?
+    bool nameMatches(const std::set<std::string> &searchStrings, const std::string &processName)
     {
         auto iter = std::find_if(searchStrings.begin(), searchStrings.end(), [&](const std::string &search)
         {
@@ -37,7 +38,6 @@ namespace
             return true;
 
         return false;
-
     }
 
     std::set<pid_t> allParentProcessPids(const Engine::Config& config)
@@ -137,7 +137,7 @@ void MacEngine::showExec(const Config &config)
            // Need an explicit match on process names (rather than just relying on name -> pid conversion
            // in allProcessPids()) because the process might not actually exist at this point, the audit
            // pipe indicates process is starting but not necessary started.
-           !processNameMatches(config.processes().names(), basename(event.path)))
+           !nameMatches(config.processes().names(), basename(event.path)))
         {
             return;
         }

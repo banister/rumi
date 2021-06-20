@@ -47,8 +47,9 @@ public:
 public:
     bool verbose() const {return _verbose;}
     IPVersion ipVersion() const {return _ipVersion;}
-    const SelectedProcesses& processes() const {return _processes;}
-    const SelectedProcesses& parentProcesses() const {return _parentProcesses;}
+    const SelectedProcesses &processes() const {return _processes;}
+    const SelectedProcesses &parentProcesses() const {return _parentProcesses;}
+    const std::set<std::string> &displayColumns() const {return _displayColumns;}
 
     // indicates whether user specified any proocesses to watch on CLI
     // if this is true, should indicate that we must skip anything else
@@ -59,10 +60,13 @@ private:
     void extractProcesses(const std::string &optionName, const cxxopts::ParseResult &result, SelectedProcesses &selectedProcesses);
     // The IP version(s) we're interested in
     void decideIpVersion(const cxxopts::ParseResult &result);
+    // The display columns requested - used for rendering output
+    void setDisplayColumns(const cxxopts::ParseResult &result);
 
 private:
     bool _verbose{};
     IPVersion _ipVersion{};
     SelectedProcesses _processes;
     SelectedProcesses _parentProcesses;
+    std::set<std::string> _displayColumns;
 };

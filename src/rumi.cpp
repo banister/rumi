@@ -25,11 +25,17 @@ int main(int argc, char** argv)
         std::cerr << std::endl;
         return 1;
     }
+    catch(const cxxopts::OptionException &ex)
+    {
+        std::cerr << "Error: " << ex.what() << std::endl;
+        return 1;
+    }
     catch(const std::exception &ex)
     {
         std::cerr << "Error: " << ex.what() << std::endl;
 
-        // Re-throw so that we get the name of the exception (i.e type std::out_of_range: vector)
+        // Re-throw so that we get the name of the exception
+        // i.e type std::out_of_range: vector
         throw;
     }
 

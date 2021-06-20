@@ -9,12 +9,12 @@ void Engine::start(int argc, char **argv)
     options.allow_unrecognised_options();
     options.add_options()
         ("h,help", "Display this help message.")
-        ("p,process", "The processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
-        ("P,parent", "The parent processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
-        ("i,interface", "The interfaces to listen on.", cxxopts::value<std::vector<std::string>>())
-        ("a,analyze", "Analyze traffic.",cxxopts::value<bool>()->default_value("true"))
+        ("a,analyze", "Analyze traffic.")
         ("s,sockets", "Show socket information.")
         ("e,exec", "Show process execs.")
+        ("p,process", "The processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
+        ("P,parent", "The parent processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
+        ("c,cols", "The display columns to use for output.", cxxopts::value<std::vector<std::string>>())
         ("v,verbose", "Verbose output.",cxxopts::value<bool>()->default_value("false"))
         ("4,inet", "IPv4 only.",cxxopts::value<bool>()->default_value("false"))
         ("6,inet6", "IPv6 only.",cxxopts::value<bool>()->default_value("false"));
@@ -26,9 +26,8 @@ void Engine::start(int argc, char **argv)
 
     if(!result.unmatched().empty())
     {
-        std::cout << "Error: Unrecognized option: " << result.unmatched().front() << "\n\n";
-        std::cout << options.help();
-        return;
+        std::cout << "Error: Unrecognized option: "
+            << result.unmatched().front() << "\n\n" << options.help();
     }
     else if(result.count("help"))
     {
@@ -45,6 +44,10 @@ void Engine::start(int argc, char **argv)
     else if(result["analyze"].as<bool>())
     {
         showTraffic(config);
+    }
+    else
+    {
+        std::cout << "No mode given: specify -a, -s or -e\n\n" << options.help();
     }
 }
 
@@ -67,6 +70,7 @@ Engine::Config::Config(const cxxopts::ParseResult &result)
     extractProcesses("process", result, _processes);
     extractProcesses("parent", result, _parentProcesses);
     decideIpVersion(result);
+    setDisplayColumns(result);
 }
 
 void Engine::Config::extractProcesses(const std::string &optionName, const cxxopts::ParseResult &result, SelectedProcesses &selectedProcesses)
@@ -102,4 +106,13 @@ void Engine::Config::decideIpVersion(const cxxopts::ParseResult &result)
     else
         // Default to both ipv4 and ipv6
         _ipVersion = IPVersion::Both;
+}
+
+void Engine::Config::setDisplayColumns(const cxxopts::ParseResult &result)
+{
+    if(result.count("cols"))
+    {
+        const auto &colVec = result["cols"].as<std::vector<std::string>>();
+        _displayColumns.insert(colVec.begin(), colVec.end());
+    }
 }
