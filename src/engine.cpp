@@ -4,7 +4,7 @@
 
 void Engine::start(int argc, char **argv)
 {
-    cxxopts::Options options{"Columbo", "Per-app traffic analyzer"};
+    cxxopts::Options options{"Columbo", "Runtime ruminations"};
 
     options.allow_unrecognised_options();
     options.add_options()
@@ -24,7 +24,13 @@ void Engine::start(int argc, char **argv)
     // Initialize our config from the CLI options
     Config config{result};
 
-    if(result.count("help"))
+    if(!result.unmatched().empty())
+    {
+        std::cout << "Error: Unrecognized option: " << result.unmatched().front() << "\n\n";
+        std::cout << options.help();
+        return;
+    }
+    else if(result.count("help"))
     {
         std::cout << options.help();
     }

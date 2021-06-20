@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     {
         std::cerr << "Error: " << ex.what() << std::endl;
 
-        // Re-throw that we get the name of the exception (i.e type std::out_of_range: vector)
+        // Re-throw so that we get the name of the exception (i.e type std::out_of_range: vector)
         throw;
     }
 

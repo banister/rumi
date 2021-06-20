@@ -26,6 +26,20 @@ namespace
         return allPids;
     }
 
+    bool processNameMatches(const std::set<std::string> &searchStrings, const std::string &processName)
+    {
+        auto iter = std::find_if(searchStrings.begin(), searchStrings.end(), [&](const std::string &search)
+        {
+            return (processName.rfind(search) == std::string::npos ? false : true);
+        });
+
+        if(iter != searchStrings.end())
+            return true;
+
+        return false;
+
+    }
+
     std::set<pid_t> allParentProcessPids(const Engine::Config& config)
     {
         auto allPids = config.parentProcesses().pids();
@@ -86,6 +100,11 @@ void MacEngine::showTraffic(const Config &config)
             // then limit to showing only packets from those processes
             if(config.processesProvided())
             {
+                // FIXME: to explicitly match on processNames NOT just pid
+                // coz there MAY be a race when it comes to looking up pids from names
+                // the pid might not be available at the point we look it up.
+                // This may nto be an issue here with packet sniffing, but is definitely an issue
+                // when tracing process startups in showExec
                 if(matchesPacket(packet, allProcessPids(config)))
                     displayPacket(packet, path);
             }
@@ -112,14 +131,16 @@ void MacEngine::showExec(const Config &config)
         // Don't show any processes if the user has said they're only
         // interested in specific processes AND we currently have no processes
         // that match the ones they care about
-        if(config.processesProvided() && !allProcessPids(config).contains(event.pid) && !allParentProcessPids(config).contains(event.ppid))
+        if(config.processesProvided() &&
+           !allProcessPids(config).contains(event.pid) &&
+           !allParentProcessPids(config).contains(event.ppid) &&
+           // Need an explicit match on process names (rather than just relying on name -> pid conversion
+           // in allProcessPids()) because the process might not actually exist at this point, the audit
+           // pipe indicates process is starting but not necessary started.
+           !processNameMatches(config.processes().names(), basename(event.path)))
+        {
             return;
-
-        // FIXME:
-        // For process names compare against the actual event.path - don't convert to pids first
-        // (as we do currentlyl) - as the current approach doesn't see so relilable, may be a race condition
-        // which means we don't always get all matching processes. cf rumi -p route which
-        // doesn't appear to match anything
+        }
 
         std::cout << "pid: " << event.pid << " ppid: " << event.ppid << " - ";
         std::cout << (config.verbose() ? event.path : basename(event.path)) << " ";
