@@ -14,6 +14,7 @@
 #include <variant>
 #include <compare>
 #include <functional>
+#include <filesystem>
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/errno.h>

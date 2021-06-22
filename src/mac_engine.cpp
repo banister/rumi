@@ -1,11 +1,10 @@
-#include <filesystem>
 #include "mac_engine.h"
 #include "port_finder.h"
 #include "bpf_device.h"
 #include "auditpipe.h"
+#include "view.h"
 
 namespace fs = std::filesystem;
-
 namespace
 {
     std::string basename(const std::string& path)
@@ -16,7 +15,7 @@ namespace
     // Get the list of all process pids that we care about based on user config.
     // This includes the specific numeric pids given on the CLI (via -p <pid>)
     // and also includes the process search strings (-p <search string>) converted to pids
-    std::set<pid_t> allProcessPids(const Engine::Config& config)
+    std::set<pid_t> allProcessPids(const Config& config)
     {
         auto allPids = config.processes().pids();
         // Convert process search strings to pids
@@ -40,7 +39,7 @@ namespace
         return false;
     }
 
-    std::set<pid_t> allParentProcessPids(const Engine::Config& config)
+    std::set<pid_t> allParentProcessPids(const Config& config)
     {
         auto allPids = config.parentProcesses().pids();
         // Convert process search strings to pids
@@ -142,19 +141,7 @@ void MacEngine::showExec(const Config &config)
             return;
         }
 
-        std::cout << "pid: " << event.pid << " ppid: " << event.ppid << " - ";
-        std::cout << (config.verbose() ? event.path : basename(event.path)) << " ";
-
-        for(size_t index=0; const auto &arg : event.arguments)
-        {
-            // Skip argv[0] (program name) as we already display the path
-            if(index != 0)
-                std::cout << arg << " ";
-
-            ++index;
-        }
-
-        std::cout << std::endl;
+        View::Exec<decltype(event)>{event, config}.render();
     });
 
     // Infinite loop
