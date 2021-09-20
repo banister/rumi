@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "config.h"
+#include "proc.h"
 
 namespace View
 {
@@ -19,25 +20,87 @@ public:
 public:
     void render() const
     {
-        std::cout << "pid: " << _event.pid << " ppid: " << _event.ppid << " - ";
-        std::cout << (_config.verbose() ? _event.path : basename(_event.path)) << " ";
-
-        for(size_t index=0; const auto &arg : _event.arguments)
+        if(!_config.formatString().empty())
         {
-            // Skip argv[0] (program name) as we already display the path
-            if(index != 0)
-                std::cout << arg << " ";
+            fmt::print(_config.formatString(),
+                fmt::arg("pid", _event.pid),
+                fmt::arg("ppid", _event.ppid),
+                fmt::arg("path", _event.path),
+                fmt::arg("ppath", Proc::pidToPath(_event.ppid)),
+                fmt::arg("name", basename(_event.path)),
+                fmt::arg("pname", basename(Proc::pidToPath(_event.ppid))),
+                fmt::arg("args", join(_event.arguments))
+                );
 
-            ++index;
+            std::cout << std::endl;
         }
+        else if(!_config.displayColumns().empty())
+        {
+            for(const auto &column : _config.displayColumns())
+            {
+                if(column == "pid")
+                    std::cout << _event.pid << " ";
+                else if(column == "ppid")
+                    std::cout << _event.ppid << " ";
+                else if(column == "path")
+                    std::cout << _event.path << " ";
+                else if(column == "ppath")
+                    std::cout << Proc::pidToPath(_event.ppid) << " ";
+                else if(column == "name")
+                    std::cout << basename(_event.path) << " ";
+                else if(column == "pname")
+                    std::cout << basename(Proc::pidToPath(_event.ppid)) << " ";
+                else if(column == "args")
+                {
+                    for(size_t index = 0; const auto &arg : _event.arguments)
+                    {
+                        // Skip argv[0] (program name) as we already display the path
+                        if(index != 0)
+                            std::cout << arg << " ";
+                        ++index;
+                    }
+                }
+            }
+            std::cout << std::endl;
+        }
+        else
+        {
+            std::cout << "pid: " << _event.pid << " ppid: " << _event.ppid << " - ";
+            std::cout << (_config.verbose() ? _event.path : basename(_event.path)) << " ";
 
-        std::cout << std::endl;
+            for (size_t index = 0; const auto &arg : _event.arguments)
+            {
+                // Skip argv[0] (program name) as we already display the path
+                if (index != 0)
+                    std::cout << arg << " ";
+
+                ++index;
+            }
+
+            std::cout << std::endl;
+        }
     }
 
 private:
     std::string basename(const std::string& path) const
     {
         return static_cast<std::string>(fs::path(path).filename());
+    }
+
+    std::string join(const std::vector<std::string> &vec) const
+    {
+        std::stringstream str;
+        for(size_t index = 0; const auto &arg : _event.arguments)
+        {
+            // Skip argv[0] (program name) as we already display the path
+            if(index != 0)
+                str << arg;
+
+            if(index != 0 && index < (_event.arguments.size() - 1))
+                str << " ";
+            ++index;
+        }
+        return str.str();
     }
 
 private:

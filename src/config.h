@@ -27,7 +27,8 @@ public:
     IPVersion ipVersion() const {return _ipVersion;}
     const SelectedProcesses &processes() const {return _processes;}
     const SelectedProcesses &parentProcesses() const {return _parentProcesses;}
-    const std::set<std::string> &displayColumns() const {return _displayColumns;}
+    const std::vector<std::string> &displayColumns() const {return _displayColumns;}
+    const std::string &formatString() const {return _formatString;}
 
     // indicates whether user specified any proocesses to watch on CLI
     // if this is true, should indicate that we must skip anything else
@@ -40,11 +41,14 @@ private:
     void decideIpVersion(const cxxopts::ParseResult &result);
     // The display columns requested - used for rendering output
     void setDisplayColumns(const cxxopts::ParseResult &result);
+    // Save the format string
+    void setFormatString(const cxxopts::ParseResult &result);
 
 private:
     bool _verbose{};
     IPVersion _ipVersion{};
     SelectedProcesses _processes;
     SelectedProcesses _parentProcesses;
-    std::set<std::string> _displayColumns;
+    std::vector<std::string> _displayColumns;
+    std::string _formatString;
 };

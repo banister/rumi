@@ -85,7 +85,7 @@ void MacEngine::showTraffic(const Config &config)
     bpfDevice.onPacketReceived([&](const PacketView &packet)
     {
         if(config.ipVersion() != IPVersion::Both)
-        // Skip packets with unwanted ipVersion
+        // Skip packets with the unwanted ipVersion
         if(packet.ipVersion() != config.ipVersion())
             return;
 

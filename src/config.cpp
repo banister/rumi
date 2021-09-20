@@ -7,6 +7,7 @@ Config::Config(const cxxopts::ParseResult &result)
     extractProcesses("parent", result, _parentProcesses);
     decideIpVersion(result);
     setDisplayColumns(result);
+    setFormatString(result);
 }
 
 void Config::extractProcesses(const std::string &optionName, const cxxopts::ParseResult &result, SelectedProcesses &selectedProcesses)
@@ -49,6 +50,14 @@ void Config::setDisplayColumns(const cxxopts::ParseResult &result)
     if(result.count("cols"))
     {
         const auto &colVec = result["cols"].as<std::vector<std::string>>();
-        _displayColumns.insert(colVec.begin(), colVec.end());
+        _displayColumns = colVec;
+    }
+}
+
+void Config::setFormatString(const cxxopts::ParseResult &result)
+{
+    if(result.count("format"))
+    {
+        _formatString = result["format"].as<std::string>();
     }
 }

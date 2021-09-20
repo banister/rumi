@@ -15,6 +15,7 @@ void Engine::start(int argc, char **argv)
         ("p,process", "The processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
         ("P,parent", "The parent processes to observe (either pid or name)", cxxopts::value<std::vector<std::string>>())
         ("c,cols", "The display columns to use for output.", cxxopts::value<std::vector<std::string>>())
+        ("f,format", "Set format string.", cxxopts::value<std::string>())
         ("v,verbose", "Verbose output.",cxxopts::value<bool>()->default_value("false"))
         ("4,inet", "IPv4 only.",cxxopts::value<bool>()->default_value("false"))
         ("6,inet6", "IPv6 only.",cxxopts::value<bool>()->default_value("false"));

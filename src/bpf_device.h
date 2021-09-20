@@ -8,20 +8,18 @@
 
 class BpfDevice
 {
-private:
+    enum : size_t { MaxBpfNumber = 99 };
+
     using PktCallbackT = std::function<void(const PacketView&)>;
-
-public:
-     BpfDevice(const std::string &interfaceName);
-
-private:
-   enum : size_t { MaxBpfNumber = 99 };
 
    struct InterfaceConfig
    {
        Fd fd;
        std::uint32_t bufferLength{0};
     };
+
+public:
+     BpfDevice(const std::string &interfaceName);
 
 private:
     InterfaceConfig findAndConfigureInterface(const std::string &interfaceName) const;

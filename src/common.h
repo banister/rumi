@@ -15,6 +15,7 @@
 #include <compare>
 #include <functional>
 #include <filesystem>
+#include <algorithm>
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/errno.h>

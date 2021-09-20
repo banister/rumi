@@ -3,6 +3,7 @@
 #include <libproc.h>
 #include <sys/types.h>
 #include <sys/sysctl.h>
+#include "proc.h"
 
 namespace
 {
@@ -12,31 +13,6 @@ namespace
     // We're only interested in process and exec audit events.
     uint32_t selectionFlags = 0x00000080 | // process (pc)
                               0x40000000;  // exec (ex)
-
-    pid_t getppid(pid_t pid)
-    {
-        pid_t ppid{};
-        kinfo_proc proc{};
-        size_t procBufferSize{sizeof(kinfo_proc)};
-        const uint32_t mibLength{4};
-        // Initialize the mib
-        int mib[mibLength] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
-        auto ret = sysctl(mib, mibLength, &proc, &procBufferSize, nullptr, 0);
-
-        if(ret == 0 && procBufferSize != 0)
-            ppid = proc.kp_eproc.e_ppid;
-
-        return ppid;
-    }
-
-    std::string pidToPath(pid_t pid)
-    {
-        std::string path;
-        path.resize(PROC_PIDPATHINFO_MAXSIZE);
-        auto realSize = proc_pidpath(pid, path.data(), path.size());
-        path.resize(realSize);
-        return path;
-    }
 }
 
 AuditPipe::AuditPipe()
@@ -158,7 +134,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &processEvent
             if(processEvent.pid == 0)
             {
                 processEvent.pid = token.tt.subj32.pid;
-                processEvent.ppid = getppid(processEvent.pid);
+                processEvent.ppid = Proc::getppid(processEvent.pid);
             }
             else
             {
@@ -172,7 +148,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &processEvent
         else
         {
             processEvent.pid = token.tt.subj32.pid;
-            processEvent.ppid = getppid(processEvent.pid);
+            processEvent.ppid = Proc::getppid(processEvent.pid);
         }
 
         processEvent.uid = token.tt.subj32.euid;
@@ -192,7 +168,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &processEvent
         }
 
         if(AUE_FORK == processEvent.type)
-            processEvent.path = pidToPath(processEvent.pid);
+            processEvent.path = Proc::pidToPath(processEvent.pid);
 
         break;
     }
@@ -232,7 +208,7 @@ void AuditPipe::processToken(const tokenstr_t &token, ProcessEvent &processEvent
             }
             else
             {
-                processEvent.path = pidToPath(processEvent.pid);
+                processEvent.path = Proc::pidToPath(processEvent.pid);
 
                 if(((processEvent.path.empty()  || processEvent.path.starts_with("/dev/")) && !processEvent.arguments.empty()))
                     processEvent.path = processEvent.arguments.at(0);
