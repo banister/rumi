@@ -18,19 +18,20 @@ bool PortFinder::Connection::isIpv6AnyAddress() const
 
 std::string PortFinder::Connection::buildString(bool verbose) const
 {
-    const char *formatString = isIpv4() ? "{} {}:{} -> {}:{} {}" : "{} {}.{} -> {}.{} {}";
+    constexpr const char *formatStringIpv4 = "{} {}:{} -> {}:{} {}";
+    constexpr const char *formatStringIpv6 = "{} {}.{} -> {}.{} {}";
 
     const std::string protocol = this->protocol() == IPPROTO_TCP ? "TCP" : "UDP";
     const std::string filePath = verbose ? path() : static_cast<std::string>(fs::path(path()).filename());
 
     if(isIpv4())
     {
-        return fmt::format(formatString, protocol, IPv4Address{localIp4()}.toString(),
+        return fmt::format(formatStringIpv4, protocol, IPv4Address{localIp4()}.toString(),
             localPort(), IPv4Address{remoteIp4()}.toString(), remotePort(), filePath);
     }
     else
     {
-        return fmt::format(formatString, protocol, IPv6Address{localIp6()}.toString(),
+        return fmt::format(formatStringIpv6, protocol, IPv6Address{localIp6()}.toString(),
             localPort(), IPv6Address{remoteIp6()}.toString(), remotePort(), filePath);
     }
 }

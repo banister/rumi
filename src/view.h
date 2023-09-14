@@ -20,21 +20,7 @@ public:
 public:
     void render() const
     {
-        if(!_config.formatString().empty())
-        {
-            fmt::print(_config.formatString(),
-                fmt::arg("pid", _event.pid),
-                fmt::arg("ppid", _event.ppid),
-                fmt::arg("path", _event.path),
-                fmt::arg("ppath", Proc::pidToPath(_event.ppid)),
-                fmt::arg("name", basename(_event.path)),
-                fmt::arg("pname", basename(Proc::pidToPath(_event.ppid))),
-                fmt::arg("args", join(_event.arguments))
-                );
-
-            std::cout << std::endl;
-        }
-        else if(!_config.displayColumns().empty())
+        if(!_config.displayColumns().empty())
         {
             for(const auto &column : _config.displayColumns())
             {
