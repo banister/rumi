@@ -54,13 +54,19 @@ void Engine::start(int argc, char **argv)
 
 void Engine::displayPacket(const PacketView &packet, const std::string &appPath)
 {
-    static const char *ipv6FormatString = "{:.20} {} {}.{} > {}.{}\n";
-    static const char *ipv4FormatString = "{:.20} {} {}:{} > {}:{}\n";
+    constexpr const char *ipv6FormatString = "{:.20} {} {}.{} > {}.{}\n";
+    constexpr const char *ipv4FormatString = "{:.20} {} {}:{} > {}:{}\n";
 
-    const char *formatString = packet.isIpv6() ? ipv6FormatString : ipv4FormatString;
-
-    fmt::print(formatString, appPath, packet.transportName(), packet.sourceAddress(), packet.sourcePort(),
-               packet.destAddress(), packet.destPort());
+    if(packet.isIpv6())
+    {
+        fmt::print(ipv6FormatString, appPath, packet.transportName(), packet.sourceAddress(), packet.sourcePort(),
+                packet.destAddress(), packet.destPort());
+    } 
+    else 
+    {
+        fmt::print(ipv4FormatString, appPath, packet.transportName(), packet.sourceAddress(), packet.sourcePort(),
+                packet.destAddress(), packet.destPort());
+    }
 
     ::fflush(stdout);
 }
